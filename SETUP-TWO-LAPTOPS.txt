@@ -155,7 +155,7 @@ STATUS
   confirmed working by the owner on both laptops (2026-11-08).
   Follow the quick guide and the 12 acceptance tests in docs\Teeth_Two_Laptop_Plan.md.
 
-UPDATE 2026-11-12 (Doctor 2)
+TEETH-AUTO.bat (Doctor 2): things to know
   - Always run TEETH-AUTO.bat from C:\Teeth (another copy of the folder has its own empty database).
   - Laptop 2 keeps a backup of IN/OUT in C:\ProgramData\Teeth and puts it back if the database shows 0 / 0 in the same shift.
   - The time zone is checked (default SE Asia Standard Time, key TimeZone= in App Files\teeth-doctor.ini).

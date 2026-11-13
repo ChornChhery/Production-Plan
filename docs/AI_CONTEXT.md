@@ -173,7 +173,7 @@ Teeth: `App Files\Source\Teeth.sln`, Release + x64, Rebuild, close Teeth.exe, ru
 - Ask for the exact on-screen text, the step or test number, and the "Show last keys (test)" result.
 - Keep answers short and in simple words; the owner is not a developer.
 
-## Documents updated 2026-11-12 (Doctor 2)
-The four PDFs got an added last page "UPDATE 2026-11-12 - Doctor 2"; the older pages were not rewritten. `Teeth_Two_Laptop_Plan.md` has a new section at the end. When these differ, the update page/section is right. Open question for the owner: which number dropped to 0 - the Laptop 1 "IN sent since start" bar (expected, resets when TeethSender restarts) or Result IN/OUT on laptop 2?
+## Documents (version of 2026-11-12, Doctor 2)
+The four PDFs were rebuilt for this version: their front chapters describe TEETH-AUTO.bat as it is now (the Quick Visual Guide has a 7-page one-click chapter with two flowcharts: the workflow and what to do when it is not green); the manual numbered pages are unchanged and still valid. `Teeth_Two_Laptop_Plan.md` has the section on Doctor 2 and the tests D1-D15. Open question for the owner: which number dropped to 0 - the Laptop 1 "IN sent since start" bar (expected, resets when TeethSender restarts) or Result IN/OUT on laptop 2?
 
 Limits of Step-CountsGuard: it does NOT restore when Teeth starts with a brand-new empty database (the Doctor cannot read a missing database); it can bring old counts back if Reset Result is followed by a Teeth restart inside the 5-minute window. Test results: App Files\Source_Build\doctor-tests\RESULT-2026-11-12.txt (35 static + 42 logic + 36 scenario = 113, simulator only). How to run: Run-Doctor-SelfTest.bat, TEETH-CHECK-ONLY.bat, TEETH-AUTO.bat from C:\Teeth, then tests D1-D15.

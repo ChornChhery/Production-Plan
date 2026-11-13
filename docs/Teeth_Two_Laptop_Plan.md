@@ -286,7 +286,7 @@ Teeth_Project_2Laptops_FINAL.zip
   docs/                             Teeth_Full_Reference_Guide.pdf (17 pages), AI_CONTEXT.md, this plan, images/
 ```
 
-## Update 2026-11-12 - Doctor 2 (newer than the text above)
+## TEETH-AUTO.bat (Doctor 2): .NET install, time zone, adapter reset, counts safety net
 
 Changes to `App Files\Tools\Teeth-Doctor.ps1` (run by TEETH-AUTO.bat and by the scheduled task every 5 minutes). Tested only in the simulator (35 static, 42 logic, 36 scenario checks), NOT yet on a real Windows laptop.
 
@@ -301,6 +301,6 @@ The number on laptop 1 ("IN sent since start: N") is a running total since Teeth
 
 Always run TEETH-AUTO.bat from `C:\Teeth`; another copy of the folder has its own empty `Teeth.sqlite`.
 
-Limits of the counts safety net (also in the PDF update pages): (1) Reset Result followed by a Teeth restart inside the 5-minute window can bring the old counts back. (2) If Teeth starts with a brand-new empty database (for example from another folder), the counts are NOT restored; the last numbers are in `counts-history.txt` and can be entered with Settings > Admin > correction. `TEETH-UNDO.bat` does not undo the .NET install, the time zone change or `C:\ProgramData\Teeth`.
+Limits of the counts safety net (also in the PDF guides): (1) Reset Result followed by a Teeth restart inside the 5-minute window can bring the old counts back. (2) If Teeth starts with a brand-new empty database (for example from another folder), the counts are NOT restored; the last numbers are in `counts-history.txt` and can be entered with Settings > Admin > correction. `TEETH-UNDO.bat` does not undo the .NET install, the time zone change or `C:\ProgramData\Teeth`.
 
 How to run and test Doctor 2: replace `App Files\Tools\Teeth-Doctor.ps1` on both laptops (or unzip the new project zip into `C:\Teeth`, keeping `Teeth.sqlite`, `Log Data`, `link.ini`, `sender.ini`, `pending.txt`); run `App Files\Tools\Run-Doctor-SelfTest.bat` (must end with ALL CHECKS PASSED: static 35 + logic 42); `TEETH-CHECK-ONLY.bat`; then `TEETH-AUTO.bat` from `C:\Teeth`; then tests D1-D15 (D10-D15 are new). Developer tests here: `App Files\Source_Build\doctor-tests` (`Test-Doctor-Static.ps1`, `Test-Doctor-Logic.ps1`, `Test-Doctor-Scenarios.ps1` + `Simulate-Doctor.ps1`; result file `RESULT-2026-11-12.txt`: 35 + 42 + 36 = 113 checks passed).

@@ -27,4 +27,4 @@ If you see that error, your Teeth.exe is build 1: copy Teeth.exe and TeethSender
 
 Doctor 2 (2026-11-12): TEETH-AUTO.bat now installs .NET Framework 4.8 by itself when it is missing (asks once), tries one adapter off/on when the USB adapter says Disconnected, and checks/fixes the time zone (keeps the clock time). Tests: 35 static, 32 logic, 32 scenario checks pass (on PowerShell 7 in a simulator; not yet on a real Windows laptop).
 Doctor 2 also: counts safety net on Laptop 2 (backup of IN/OUT outside the Teeth folder, restore when the database is 0/0 in the same shift, before Teeth starts). 35 static, 42 logic, 36 scenario checks pass in a simulator.
-Documents 2026-11-12: the 4 PDFs have an added last page "UPDATE 2026-11-12 - Doctor 2"; plan, AI_CONTEXT, README, SETUP-TWO-LAPTOPS and SENDER-HOW-TO updated.
+Documents of this version: the 4 PDFs were rebuilt (front chapters describe the current TEETH-AUTO.bat; the Quick Visual Guide has a one-click chapter with a workflow flowchart and a troubleshooting flowchart); plan, AI_CONTEXT, README, SETUP-TWO-LAPTOPS and SENDER-HOW-TO match.
