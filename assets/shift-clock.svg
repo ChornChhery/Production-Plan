@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 450" width="960" height="450" role="img" aria-label="Animation: a 24-hour dial; at 08:00 and 20:00 the shift changes, a row is written to Excel and the counts start at 0">
+<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0b1220"/><stop offset="1" stop-color="#16233f"/></linearGradient></defs>
+<rect width="960" height="450" rx="18" fill="url(#bg)"/>
+<text x="480" y="36" text-anchor="middle" font-family="'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="20" font-weight="700" fill="#e2e8f0">Two shifts a day, switched automatically</text>
+<circle cx="250" cy="225" r="150" fill="none" stroke="#6366f1" stroke-width="26"/>
+<circle cx="250" cy="225" r="150" fill="none" stroke="#f59e0b" stroke-width="26" stroke-dasharray="471.24 471.24" transform="rotate(30 250 225)"/>
+<circle cx="250" cy="225" r="124" fill="#0f172a"/>
+<text x="250" y="219" text-anchor="middle" font-family="'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="16" font-weight="700" fill="#fbbf24" opacity="0">DAY SHIFT<animate attributeName="opacity" values="0;1;0;0" keyTimes="0;0.3333;0.8333;1" calcMode="discrete" dur="12s" repeatCount="indefinite"/></text>
+<text x="250" y="241" text-anchor="middle" font-family="'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="12" fill="#cbd5e1" opacity="0">08:00 - 20:00<animate attributeName="opacity" values="0;1;0;0" keyTimes="0;0.3333;0.8333;1" calcMode="discrete" dur="12s" repeatCount="indefinite"/></text>
+<g opacity="1"><text x="250" y="219" text-anchor="middle" font-family="'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="16" font-weight="700" fill="#a5b4fc">NIGHT SHIFT</text><text x="250" y="241" text-anchor="middle" font-family="'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="12" fill="#cbd5e1">20:00 - 08:00</text>
+ <animate attributeName="opacity" values="1;0;1;1" keyTimes="0;0.3333;0.8333;1" calcMode="discrete" dur="12s" repeatCount="indefinite"/></g>
+<text x="250.0" y="49.0" text-anchor="middle" font-family="'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="12" fill="#94a3b8">00:00</text>
+<text x="430.0" y="229.0" text-anchor="middle" font-family="'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="12" fill="#94a3b8">06:00</text>
+<text x="250.0" y="409.0" text-anchor="middle" font-family="'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="12" fill="#94a3b8">12:00</text>
+<text x="70.0" y="229.0" text-anchor="middle" font-family="'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="12" fill="#94a3b8">18:00</text>
+<line x1="360.9" y1="289.0" x2="399.0" y2="311.0" stroke="#fff" stroke-width="3"/>
+<text x="418.0" y="326.0" text-anchor="middle" font-family="'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="13" font-weight="700" fill="#fbbf24">08:00</text>
+<line x1="139.1" y1="161.0" x2="101.0" y2="139.0" stroke="#fff" stroke-width="3"/>
+<text x="82.0" y="132.0" text-anchor="middle" font-family="'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="13" font-weight="700" fill="#a5b4fc">20:00</text>
+<g><line x1="250" y1="225" x2="250" y2="83" stroke="#f8fafc" stroke-width="4" stroke-linecap="round"/><circle cx="250" cy="225" r="7" fill="#f8fafc"/>
+ <animateTransform attributeName="transform" type="rotate" from="0 250 225" to="360 250 225" dur="12s" repeatCount="indefinite"/></g>
+<!-- right panel -->
+<text x="560" y="86" font-family="'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="15" font-weight="700" fill="#e2e8f0">At every shift change, Teeth:</text>
+<g font-family="'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="13.5" fill="#cbd5e1"><text x="560" y="114">1. writes the finished shift to Log Data\Teeth_Log.xlsx</text><text x="560" y="138">2. starts the new shift at IN 0 / OUT 0</text><text x="560" y="162">3. switches the targets to the new shift's work blocks</text></g>
+<rect x="560" y="190" width="360" height="190" rx="10" fill="#0f172a" stroke="#334155"/>
+<text x="574" y="214" font-family="'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="12" font-weight="700" fill="#94a3b8">Shift Log (Excel)</text>
+<line x1="560" y1="224" x2="920" y2="224" stroke="#334155"/>
+<g font-family="'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="12" fill="#64748b"><text x="574" y="246">Date</text><text x="660" y="246">Shift</text><text x="715" y="246">Reason</text><text x="835" y="246">IN / OUT</text></g>
+<g opacity="0"><g font-family="'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="12.5" fill="#fde68a"><text x="574" y="274">2026-11-12</text><text x="660" y="274">Night</text><text x="715" y="274">Shift Rollover</text><text x="835" y="274">1250 / 1198</text></g><animate attributeName="opacity" values="0;1;1" keyTimes="0;0.3500;1" calcMode="discrete" dur="12s" repeatCount="indefinite"/></g>
+<g opacity="0"><g font-family="'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="12.5" fill="#c7d2fe"><text x="574" y="300">2026-11-12</text><text x="660" y="300">Day</text><text x="715" y="300">Shift Rollover</text><text x="835" y="300">1240 / 1236</text></g><animate attributeName="opacity" values="0;1;1" keyTimes="0;0.8500;1" calcMode="discrete" dur="12s" repeatCount="indefinite"/></g>
+<g opacity="0"><rect x="560" y="388" width="360" height="40" rx="8" fill="#14532d" stroke="#22c55e"/><text x="740" y="413" text-anchor="middle" font-family="'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="14" font-weight="700" fill="#bbf7d0">Counts reset to 0 · new row written</text><animate attributeName="opacity" values="0;1;0;0" keyTimes="0;0.3333;0.4500;1" calcMode="discrete" dur="12s" repeatCount="indefinite"/></g>
+<g opacity="0"><rect x="560" y="388" width="360" height="40" rx="8" fill="#14532d" stroke="#22c55e"/><text x="740" y="413" text-anchor="middle" font-family="'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="14" font-weight="700" fill="#bbf7d0">Counts reset to 0 · new row written</text><animate attributeName="opacity" values="0;1;0;0" keyTimes="0;0.8333;0.9500;1" calcMode="discrete" dur="12s" repeatCount="indefinite"/></g>
+<text x="250" y="430" text-anchor="middle" font-family="'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="12" fill="#94a3b8">The clock of laptop 2 drives the shifts</text>
+</svg>

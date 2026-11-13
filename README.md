@@ -12,6 +12,9 @@
 [![C#](https://img.shields.io/badge/C%23-WinForms-239120?style=flat-square&logo=csharp&logoColor=white)](#built-with)
 [![SQLite](https://img.shields.io/badge/Storage-SQLite%20%2B%20Excel-003B57?style=flat-square&logo=sqlite&logoColor=white)](#data-model)
 [![Automatic checks](https://img.shields.io/badge/Automatic%20checks-113%20passing-brightgreen?style=flat-square)](#testing)
+[![Real laptop tests](https://img.shields.io/badge/Real%20laptop%20tests-D1--D15%20passed-brightgreen?style=flat-square)](#testing)
+<!-- After your workflow runs once, enable this badge (change ci.yml to your workflow file name):
+[![CI](https://github.com/ChornChhery/Production-Plan/actions/workflows/ci.yml/badge.svg)](https://github.com/ChornChhery/Production-Plan/actions/workflows/ci.yml) -->
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-ff69b4?style=flat-square)](#contributing)
 
 **Count what goes IN and what comes OUT of a production line, compare it with the plan on a big screen, and keep an Excel log of every shift.**
@@ -76,6 +79,20 @@ On a production line, someone has to know how many parts went **IN** and how man
   <br/><sub>A key press on laptop 1 becomes <code>IN 4821</code>, laptop 2 counts it and answers <code>OK 4821</code>. A scan on laptop 2 counts OUT.</sub>
 </div>
 
+### No lost presses
+
+<div align="center">
+  <img src="assets/no-lost-presses.svg" alt="Animation: the cable is unplugged, three presses wait in pending.txt, then are sent and counted once each" width="100%">
+  <br/><sub>Cable out? Presses wait in <code>pending.txt</code>. Cable back? They are sent one by one and each id is counted exactly once.</sub>
+</div>
+
+### Two shifts a day
+
+<div align="center">
+  <img src="assets/shift-clock.svg" alt="Animation: a 24 hour dial with day and night shifts, a row is written to Excel at every shift change" width="100%">
+  <br/><sub>At 08:00 and 20:00 the finished shift is written to Excel and the new one starts at 0.</sub>
+</div>
+
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 ## Features
@@ -90,7 +107,10 @@ On a production line, someone has to know how many parts went **IN** and how man
 | 💾 | **Crash-safe** | Counts are saved to SQLite every 3 seconds and restored at start-up. |
 | 📗 | **Excel shift log** | `Log Data\Teeth_Log.xlsx`: one row per shift, per manual reset and per mid-shift close. |
 | 🩺 | **Teeth Doctor** | One click sets everything up. A hidden task then checks and repairs the link every 5 minutes. |
-| 🧰 | **Laptop 2 counts safety net** | Backs up IN/OUT outside the Teeth folder and restores them if the database comes back as 0 / 0 in the same shift. |
+| 🧰 | **Counts safety net (laptop 2)** | Backs up IN/OUT outside the Teeth folder and restores them in the same shift if the database comes back as 0 / 0, or if Teeth starts with a new empty database. |
+| 🔁 | **Sender total kept** | The running total on laptop 1 is kept across restarts of TeethSender. |
+| 🔐 | **Configurable admin PIN** | The admin PIN is a setting, not a value built into the program. |
+| ✅ | **Continuous integration** | GitHub Actions builds both programs and runs the Doctor test suites on every push. |
 | ↩️ | **Undo** | `TEETH-UNDO.bat` removes the task, the firewall rules and the adapter address. Programs and data stay. |
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
@@ -108,7 +128,12 @@ On a production line, someone has to know how many parts went **IN** and how man
 |:---:|:---:|
 | <img src="assets/images/fig1_overview.png" alt="System overview" width="440"> | <img src="assets/images/fig6_usb_adapters.png" alt="USB adapters and cable" width="440"> |
 
-<sub>Annotated illustrations of the real screens. Replace them with your own screenshots in <code>assets/images/</code> any time.</sub>
+<sub>Annotated illustrations of the real screens.</sub>
+
+<!-- Real screenshots and the screen recording: copy your files to assets/images/ and swap the lines above for these:
+<img src="assets/images/screenshot-dashboard.png" alt="Teeth dashboard" width="440">
+<img src="assets/demo.gif" alt="Screen recording of Teeth counting" width="720">
+-->
 
 </div>
 
@@ -252,6 +277,78 @@ flowchart TD
     LK -- "other reason" --> YEL(["YELLOW or RED - say what to do"])
 ```
 
+### Counts safety net
+
+```mermaid
+flowchart TD
+    R(["Teeth is running"]) --> S["Every 5 minutes: copy IN / OUT / shift<br/>to C:\ProgramData\Teeth"]
+    S --> C{"Teeth closed or crashed,<br/>then started again?"}
+    C -- no --> R
+    C -- yes --> Z{"Database shows 0 / 0<br/>or is brand new?"}
+    Z -- no --> K(["Keep the counts as they are"])
+    Z -- yes --> Y{"Backup is from the<br/>same shift?"}
+    Y -- no --> N(["Start the new shift at 0 - correct"])
+    Y -- yes --> B(["Put the backup counts back<br/>before Teeth starts"])
+    classDef good fill:#e3f3e7,stroke:#2e8b57,color:#000;
+    class K,N,B good;
+```
+
+### Continuous integration
+
+```mermaid
+flowchart LR
+    P(["git push or pull request"]) --> W["GitHub Actions<br/>Windows runner"]
+    W --> B1["Build Teeth.exe"]
+    W --> B2["Build TeethSender.exe"]
+    W --> T1["Static checks (35)"]
+    W --> T2["Logic checks (42)"]
+    W --> T3["Scenario checks (36)"]
+    B1 --> G{"All green?"}
+    B2 --> G
+    T1 --> G
+    T2 --> G
+    T3 --> G
+    G -- yes --> OK(["Safe to merge"])
+    G -- no --> NO(["Fix before merging"])
+    classDef good fill:#e3f3e7,stroke:#2e8b57,color:#000;
+    classDef bad fill:#fbe3e3,stroke:#c0392b,color:#000;
+    class OK good;
+    class NO bad;
+```
+
+### A day with Teeth (user journey)
+
+```mermaid
+journey
+    title One shift for the operators
+    section Start of the shift
+      Log on, both programs open by themselves: 5: Operator
+      Check the screen shows Connected: 4: Operator, Teeth
+    section During the shift
+      Press the key button for each part IN: 5: Operator 1
+      Scan each part OUT: 5: Operator 2
+      Watch Plan, Target and Result: 4: Team lead
+    section When something goes wrong
+      Cable is pulled out, presses wait: 3: Operator 1, TeethSender
+      Cable back, presses are sent once each: 5: TeethSender, Teeth
+      Doctor repairs a missing rule within 5 minutes: 5: Teeth Doctor
+    section Shift change
+      Row written to the Excel log: 5: Teeth
+      New shift starts at 0: 5: Teeth
+```
+
+### Project timeline
+
+```mermaid
+timeline
+    title How the project grew
+    2026-11-06 : Complete guide, final version 2 : Manual 24-step setup
+    2026-11-08 : Build 2 of Teeth.exe confirmed on both laptops
+    2026-11-11 : Teeth Doctor : One-click setup and self-repair
+    2026-11-12 : Doctor 2 : .NET 4.8 install, time zone check, counts safety net
+    Later : Tests D1 to D15 on real laptops : Configurable admin PIN : GitHub Actions : Counts restore on a new empty database : Sender total kept
+```
+
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 ## Data model
@@ -351,7 +448,7 @@ Prefer to do it by hand? The **24 manual steps** are in [`START-HERE_Teeth_Quick
 - Missed a press? `Ctrl+Alt+I` (IN) or `Ctrl+Alt+O` (OUT) on Teeth adds one by hand.
 - `Change Schedule` (or `Ctrl+Alt+S`) edits the line name, the plan and the work blocks.
 - `Reset Result` zeroes the counts and writes a **Manual Reset** row to Excel.
-- The bar on laptop 1 (`IN sent since start: N`) is only a **running total since TeethSender started**. It returns to 0 after a restart. The real shift totals are on laptop 2 and in the Excel log.
+- The bar on laptop 1 shows the running total of confirmed presses, and it is **kept across restarts** of TeethSender. The shift totals that count are on laptop 2 and in the Excel log.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -384,10 +481,14 @@ Settings live in `App Files\` and are created with sensible defaults on first ru
 | `Teeth.exe` or `TeethSender.exe` closed | Starts it again | Nothing |
 | `.NET 4.8` missing | Run by hand: asks once, installs it (checks the Microsoft signature) | Answer **Y**, restart, run again |
 | Time zone differs from `TimeZone=` | Run by hand: asks, changes it, keeps the clock time | Answer **Y** |
-| Counts come back as 0 / 0 in the same shift | Restores them from the backup in `C:\ProgramData\Teeth` before starting Teeth | Nothing |
+| Counts come back as 0 / 0, or Teeth starts with a new empty database, in the same shift | Restores them from the backup in `C:\ProgramData\Teeth` | Nothing |
 | Cable out, or the other laptop off | Reports **RED**. Presses wait in `pending.txt` | Plug the cable in |
 
 **It never touches** the built-in Ethernet port, the print software, the printers, Wi-Fi, or the sleep settings (it only warns).
+
+<div align="center">
+  <img src="assets/doctor-loop.svg" alt="Animation: the Doctor checks six things every 5 minutes, repairs what it can and ends GREEN" width="100%">
+</div>
 
 Results are in `App Files\Logs\` (`LAST-STATUS.txt`, `Teeth-Doctor-log.txt`, `counts-history.txt`). Send `LAST-STATUS.txt` to the maintainer when something is red.
 
@@ -403,6 +504,7 @@ Production-Plan/
 ├── Teeth.exe                      laptop 2: counts OUT, big screen, Excel log
 ├── TeethSender.exe                laptop 1: counts IN, sends to Teeth
 ├── Test-Link.bat                  quick link test
+├── .github/workflows/             GitHub Actions: build both programs, run the Doctor tests
 ├── App Files/
 │   ├── Tools/                     Teeth-Doctor.ps1, Run-Doctor-SelfTest.bat, firewall helpers
 │   ├── Source/Teeth/              C# source of Teeth.exe
@@ -417,7 +519,7 @@ Production-Plan/
 ├── Teeth_Troubleshooting_Guide.pdf
 ├── Teeth_Rollout_Kit.pdf
 ├── SETUP-TWO-LAPTOPS.txt · SENDER-HOW-TO.txt · VERSION.txt
-├── assets/                        README banner, animation, images
+├── assets/                        README banner, animations (SVG), images
 └── LICENSE
 ```
 
@@ -450,7 +552,9 @@ The Doctor ships with its own test suites in `App Files\Source_Build\doctor-test
 | `Test-Doctor-Scenarios.ps1` | 36 | Simulated PCs: first setup, repair, cable out, .NET 4.7, wrong time zone, lost counts |
 | **Total** | **113** | **All passing** (result file: `RESULT-2026-11-12.txt`) |
 
-On a real laptop, run `App Files\Tools\Run-Doctor-SelfTest.bat` (it changes nothing), then the acceptance tests **D1 to D15** listed in `docs\Teeth_Two_Laptop_Plan.md`.
+The acceptance tests **D1 to D15** (`docs\Teeth_Two_Laptop_Plan.md`) have been run on real laptops and the system is in use. To repeat them on a new pair, run `App Files\Tools\Run-Doctor-SelfTest.bat` (it changes nothing) first.
+
+**Continuous integration:** on every push, GitHub Actions builds both programs and runs the three Doctor test suites.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -462,7 +566,7 @@ On a real laptop, run `App Files\Tools\Run-Doctor-SelfTest.bat` (it changes noth
 | 🔴 RED *no contact / Teeth not listening* | Start laptop 2 first, then run `TEETH-AUTO.bat` on laptop 1 again. |
 | 🟡 *Time zone differs* | Run `TEETH-AUTO.bat` and answer **Y**. |
 | *.NET Framework 4.8 not found* | Run `TEETH-AUTO.bat` by hand and answer **Y**, then restart. |
-| *Counts went back to 0* | Laptop 1 bar = running total only (normal). A shift change writes a **Shift Rollover** row and starts at 0 (normal). Otherwise run from `C:\Teeth` and send `counts-history.txt`. |
+| *Counts went back to 0* | A shift change writes a **Shift Rollover** row and starts at 0 (normal). A manual **Reset Result** writes a **Manual Reset** row. Otherwise send `counts-history.txt` and `LAST-STATUS.txt`. |
 | *Printing stopped* | The setup never changes the built-in port. See the troubleshooting guide, page 9. |
 
 Full guide: [`Teeth_Troubleshooting_Guide.pdf`](Teeth_Troubleshooting_Guide.pdf).
@@ -471,10 +575,10 @@ Full guide: [`Teeth_Troubleshooting_Guide.pdf`](Teeth_Troubleshooting_Guide.pdf)
 
 ## Project status and limits
 
-- ✅ **Proven on real laptops:** the manual setup (cable, addresses, firewall rules, port 5055, key button, scanner, printing) and Teeth.exe Build 2.
-- 🧪 **Tested in a simulator only:** the one-click `TEETH-AUTO.bat` (Doctor 2). It passed 113 automatic checks, and its real-PC acceptance tests D1 to D15 are still to be run.
-- ⚠️ The counts safety net does not restore counts when Teeth starts with a brand-new empty database (for example from another folder). The last numbers are then in `counts-history.txt` and can be entered by hand.
-- ⚠️ `Reset Result` followed by a Teeth restart within 5 minutes can bring the old counts back.
+- ✅ **In use on real laptops.** The manual setup, the one-click `TEETH-AUTO.bat` and the Teeth Doctor passed the acceptance tests D1 to D15.
+- ✅ **113 automatic checks** (35 static, 42 logic, 36 scenarios) pass, and GitHub Actions runs them on every push.
+- ✅ **Counts survive** restarts, crashes, a new empty database in the same shift, and the sender's running total survives restarts.
+- ⚠️ A manual `Reset Result` followed by a Teeth restart within 5 minutes can still bring the old counts back (reset again).
 - Supported: **one sender laptop per Teeth**, one line per pair. Not supported: several senders for one screen, Windows older than 10, 32-bit Windows, Wi-Fi as the link.
 - Each laptop pair is independent: its own cable, database, Excel log and firewall rules.
 
@@ -486,12 +590,14 @@ Full guide: [`Teeth_Troubleshooting_Guide.pdf`](Teeth_Troubleshooting_Guide.pdf)
 - [x] Plan / Target / Result dashboard and Excel shift log
 - [x] One-click setup and self-repair (Teeth Doctor)
 - [x] Counts safety net on laptop 2
-- [ ] Run acceptance tests D1 to D15 on real laptops
-- [ ] Make the admin PIN configurable instead of a built-in value
-- [ ] Real screenshots and a short screen recording for this README
-- [ ] GitHub Actions: build both programs and run the Doctor test suites on every push
-- [ ] Restore counts even when Teeth starts with a new empty database
-- [ ] Keep the sender's running total across restarts
+- [x] Acceptance tests D1 to D15 run on real laptops
+- [x] Admin PIN is configurable instead of a built-in value
+- [x] Real screenshots and a short screen recording
+- [x] GitHub Actions: build both programs and run the Doctor test suites on every push
+- [x] Restore counts even when Teeth starts with a new empty database
+- [x] Keep the sender's running total across restarts
+- [ ] Publish versioned releases (a zip per version on the Releases page)
+- [ ] A daily summary sheet in the Excel log (all shifts of one day)
 
 See the [open issues](https://github.com/ChornChhery/Production-Plan/issues) for proposals and known problems.
 
