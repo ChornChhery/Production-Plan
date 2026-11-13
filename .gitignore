@@ -1,0 +1,18 @@
+# Runtime data of a real line: never commit it
+Teeth.sqlite
+Teeth.sqlite-wal
+Teeth.sqlite-shm
+App Files/Teeth.sqlite*
+Log Data/*.xlsx
+App Files/Logs/
+pending.txt
+App Files/pending.txt
+# Local settings written at first run
+App Files/link.ini
+App Files/sender.ini
+App Files/teeth-doctor.ini
+# Build output
+bin/
+obj/
+*.user
+.vs/
