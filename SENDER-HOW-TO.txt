@@ -1,0 +1,59 @@
+TEETH SENDER  -  runs on LAPTOP 1 (the key button / print laptop)
+=================================================================
+
+What it does
+  Listens for the key button (P + Enter) and sends "+1 IN" over the cable to
+  Teeth on laptop 2. It never blocks the keys: the print software still gets
+  P + Enter and prints as before. If the cable is out or Teeth is closed, the
+  counts wait in pending.txt and are sent when the link is back (nothing lost,
+  nothing counted twice).
+
+Version 2 note (USB adapter)
+  The link to laptop 2 uses a USB-to-Ethernet adapter on laptop 1 (IP 192.168.50.1,
+  mask 255.255.255.0, no gateway). Do NOT change the built-in Ethernet port: the
+  print software uses it. Set the IP on the USB adapter only (ncpa.cpl, "Ethernet 2").
+  If you use another IP range, change Host in sender.ini and HOST in Test-Link.bat.
+
+Automatic way (package 3, not yet tested on a real laptop)
+  Double-click TEETH-AUTO.bat in the main folder on laptop 1 (choose "1" the first time). It sets the IP on the USB adapter,
+  starts TeethSender, tests the link and creates the scheduled task "Teeth Doctor": every log-on and every 5 minutes it
+  starts TeethSender again if it was closed (IN presses are only counted while TeethSender runs) and repairs the USB adapter
+  address. First, on a new PC, double-click App Files\Tools\Run-Doctor-SelfTest.bat (changes nothing; it must say ALL CHECKS PASSED).
+  This replaces step 3 of "Run it on laptop 1" (the shell:startup shortcut). Details: SETUP-TWO-LAPTOPS.txt.
+
+Get the program
+  TeethSender.exe is already built and sits in the MAIN folder, next to Teeth.exe.
+  Copy the WHOLE folder to laptop 1, for example to  C:\Teeth\  (the same folder goes
+  to laptop 2). On laptop 1 run only TeethSender.exe; never run Teeth.exe there.
+  Laptop 1 only needs .NET Framework 4.8 (already in updated Windows 10/11). If it is missing, TEETH-AUTO.bat installs it by itself (asks once; needs the installer file in the Teeth folder or internet). The number "IN sent since start" on this laptop goes back to 0 whenever TeethSender is restarted: it is not the shift total. The real totals are on laptop 2.
+  (Only if you change the code: open App Files\Source_Sender\TeethSender.sln in Visual Studio,
+  Release, Rebuild Solution, and copy the new TeethSender.exe from
+  App Files\Source_Sender\TeethSender\bin\Release\net48\ over the old one.)
+  Note: this exe was compiled with the Mono C# compiler and has not been run
+  on a real Windows laptop yet - test it as described below.
+
+Run it on laptop 1
+  1. Double-click TeethSender.exe. A bar appears at the bottom-right corner:
+        green  "Teeth link: OK (IN sent since start: N)" = laptop 2 / Teeth is reachable
+        red    "Teeth link: NOT CONNECTED" = cable out, wrong IP, or Teeth closed
+     The bar never takes focus, so it will not interrupt the print software.
+     About the number on laptop 1: the bar shows "Teeth link: OK (IN sent since start: N)". N is only a running total of the key presses that Teeth has confirmed since TeethSender was started. It does NOT reset at midnight or at a shift change, it goes back to 0 whenever TeethSender or laptop 1 is restarted (the automatic tool restarting TeethSender does this too), and it is NOT the shift or day total. The correct totals per shift (Day 08:00-20:00, Night 20:00-08:00, by the laptop 2 clock) are Result IN and Result OUT on the Teeth screen of laptop 2 and in Log Data\Teeth_Log.xlsx. The two numbers are expected to be different.
+  2. First run creates sender.ini  (Host=192.168.50.2  Port=5055).
+  3. Start it automatically with Windows: press Win+R, type  shell:startup ,
+     press Enter, and put a shortcut to TeethSender.exe in that folder.
+  4. To close it: right-click its tray icon (near the clock) > Exit.
+
+Check that it hears the key button
+  Press the key button once, then right-click the tray icon > "Show last keys
+  (test)". You should see  P  and then  Enter  a few hundred ms apart.
+  If the button sends something else, tell me exactly what is listed.
+
+Test the link without Teeth running its screen
+  Double-click Test-Link.bat on LAPTOP 1. "RESULT: OK" means Teeth is listening on laptop 2.
+  (On laptop 2 the same file only checks that Teeth is listening there.)
+
+If the bar stays red
+  1. USB adapter + cable plugged in on both laptops (same USB port as before)? Run Test-Link.bat (ping should reply).
+  2. Is Teeth open on laptop 2?
+  3. On laptop 2, run  App Files\Tools\Allow-Laptop1-Firewall.bat  as administrator (once).
+  4. Does Host in sender.ini match laptop 2's IP, and Port match Teeth's link.ini?

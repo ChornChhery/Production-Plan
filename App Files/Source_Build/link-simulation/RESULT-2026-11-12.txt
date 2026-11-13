@@ -1,0 +1,22 @@
+Link simulation (real LinkClient.cs + LinkServer.cs, fake cable), Mono 6.8, 2026-11-12, after the Build 2b label change
+TEST 1  normal: 10 key presses
+  PASS  all 10 delivered, Teeth IN = 10   [IN=10 waiting=0]
+  PASS  link shows connected (green)
+TEST 2  cable PULLED for 12 s, 25 key presses meanwhile, then plugged back
+  PASS  Teeth link goes red (NOT connected) within 10 s
+  PASS  sender notices the cable is out
+  PASS  25 counts wait in the sender, Teeth still 10   [waiting=25 IN=10]
+  PASS  they are saved in pending.txt   [lines=25]
+  PASS  after plugging back: green again and IN = 35 (each once)   [IN=35 waiting=0 time=1.1s]
+        recovery time after plugging in: 1.1 s
+TEST 3  OK reply lost (Teeth counted, sender never heard OK): no double count
+  PASS  after the link is back: IN = 40 exactly (not 45 or more)   [IN=40 waiting=0]
+TEST 4  laptop 1 restarted while 3 counts were waiting (cable out)
+  PASS  pending.txt kept the 3 counts on disk   [lines=3]
+  PASS  new sender process loads the 3 waiting counts   [waiting=3]
+  PASS  they arrive after the cable is back: IN = 43   [IN=43]
+TEST 5  Teeth closed on laptop 2 while key presses happen, then opened again
+  PASS  4 counts wait while Teeth is closed   [waiting=4]
+  PASS  Teeth opened again: the 4 counts arrive   [IN(new)=4]
+
+RESULT: 13 passed, 0 failed

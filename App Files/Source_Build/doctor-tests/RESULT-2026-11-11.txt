@@ -1,0 +1,110 @@
+Teeth Doctor - automatic tests, 2026-11-12, PowerShell 7.4.6 on Linux (fake adapters / pretend Windows commands)
+Not a test on a real Windows PC. On a PC run App Files\Tools\Run-Doctor-SelfTest.bat.
+
+=== Test-Doctor-Static
+PowerShell running these checks: 7.4.6
+PASS  file exists: Teeth-Doctor.ps1
+PASS  file exists: Teeth-Doctor-Hidden.vbs
+PASS  file exists: TEETH-AUTO.bat
+PASS  file exists: TEETH-CHECK-ONLY.bat
+PASS  file exists: TEETH-UNDO.bat
+PASS  Teeth-Doctor.ps1: ASCII only (no bytes above 127)
+PASS  Teeth-Doctor.ps1: Windows line endings (CRLF)
+PASS  Teeth-Doctor-Hidden.vbs: ASCII only (no bytes above 127)
+PASS  Teeth-Doctor-Hidden.vbs: Windows line endings (CRLF)
+PASS  TEETH-AUTO.bat: ASCII only (no bytes above 127)
+PASS  TEETH-AUTO.bat: Windows line endings (CRLF)
+PASS  TEETH-CHECK-ONLY.bat: ASCII only (no bytes above 127)
+PASS  TEETH-CHECK-ONLY.bat: Windows line endings (CRLF)
+PASS  TEETH-UNDO.bat: ASCII only (no bytes above 127)
+PASS  TEETH-UNDO.bat: Windows line endings (CRLF)
+PASS  Teeth-Doctor.ps1 parses with no errors on this PowerShell (0 errors)
+PASS  no PowerShell-7-only operators (??, ?., &&, ||)
+PASS  no PowerShell-7-only syntax (ternary, pipeline chain)
+PASS  no parameters that Windows PowerShell 5.1 does not have
+PASS  Join-Path always has 2 arguments (5.1 allows no more)
+PASS  no assignment to a PowerShell automatic variable ($Host, $Args, $Input, ...)
+PASS  every Step-... function that is called is defined
+PASS  function names are unique
+PASS  every command used is a known one (a typo in a command name shows up here)
+PASS  TEETH-AUTO.bat starts App Files\Tools\Teeth-Doctor.ps1
+PASS  TEETH-AUTO.bat uses a valid -Mode (%ARG%)
+PASS  TEETH-CHECK-ONLY.bat starts App Files\Tools\Teeth-Doctor.ps1
+PASS  TEETH-CHECK-ONLY.bat uses a valid -Mode (Check)
+PASS  TEETH-UNDO.bat starts App Files\Tools\Teeth-Doctor.ps1
+PASS  TEETH-UNDO.bat uses a valid -Mode (Undo)
+PASS  Teeth-Doctor-Hidden.vbs starts Teeth-Doctor.ps1 with -Mode Fix -Silent
+PASS  SETUP-TWO-LAPTOPS.txt: tells the same procedure (self-test step, laptop 2 first, no IP by hand, unzip both zips, daily-use pointer, meaning of the sender number)
+PASS  README.md: tells the same procedure (self-test step, laptop 2 first, no IP by hand, unzip both zips, daily-use pointer, meaning of the sender number)
+PASS  Teeth_Two_Laptop_Plan.md: tells the same procedure (self-test step, laptop 2 first, no IP by hand, unzip both zips, daily-use pointer, meaning of the sender number)
+PASS  AI_CONTEXT.md: tells the same procedure (self-test step, laptop 2 first, no IP by hand, unzip both zips, daily-use pointer, meaning of the sender number)
+
+RESULT: 35 of 35 static checks passed
+
+=== Test-Doctor-Logic
+PASS  ini: Role
+PASS  ini: trims spaces
+PASS  ini: ignores comment and bad lines
+PASS  mac: normalised
+PASS  mac: colon form equals dash form
+PASS  prefix
+PASS  ip in prefix: yes
+PASS  ip in prefix: 192.168.5.1 is not 192.168.50.x
+PASS  safe: built-in port is never safe
+PASS  safe: blank USB adapter
+PASS  safe: APIPA USB adapter
+PASS  safe: USB adapter with the Teeth address
+PASS  safe: USB adapter with gateway is refused
+PASS  safe: USB adapter with foreign address is refused
+PASS  safe: USB adapter with a gateway but no address is refused (gateway rule alone)
+PASS  safe: USB adapter with a DHCP address from a router is refused
+PASS  safe: USB adapter with 192.168.5.1 is refused (not 192.168.50.x)
+PASS  select: the only USB adapter has a gateway (no address) -> nothing chosen
+PASS  select: only USB adapter chosen, built-in and Wi-Fi ignored
+PASS  select: no USB adapter -> None
+PASS  select: only USB adapter has a gateway -> Unsafe, nothing chosen
+PASS  select: two USB, one has the Teeth address -> that one
+PASS  select: two USB, only one has cable (Up) -> that one
+PASS  select: two USB both Up, none configured -> Ambiguous (asks)
+PASS  select: adapter moved to another USB port is found again by MAC
+PASS  powercfg: AC 1800 s
+PASS  powercfg: DC 900 s
+PASS  powercfg: translated labels still parse (never = 0)
+PASS  powercfg: garbage -> null
+PASS  overall: OK/FIXED/INFO = GREEN
+PASS  overall: a note = YELLOW
+PASS  overall: a problem = RED
+
+RESULT: 32 of 32 checks passed
+
+=== Test-Doctor-Scenarios
+PASS  L2 fresh: script did not throw, exit 0
+PASS  L2 fresh: IP 192.168.50.2/24 set, without gateway
+PASS  L2 fresh: leftover APIPA address removed
+PASS  L2 fresh: both firewall rules created, only from 192.168.50.0/24
+PASS  L2 fresh: Teeth.exe started
+PASS  L2 fresh: scheduled task at log-on and every 5 min, highest
+PASS  L2 fresh: built-in port (index 3) and Wi-Fi (index 5) never changed
+PASS  L2 fresh: TeethSender never started on laptop 2
+PASS  L1 fresh: no throw, exit 0
+PASS  L1 fresh: IP 192.168.50.1/24 set, TeethSender started
+PASS  L1 fresh: no firewall rule, Teeth.exe not started
+PASS  Setup: no throw
+PASS  Setup: asks "Which laptop" once
+PASS  Setup then Fix: second run reports no [FIXED] and no [PROBLEM]
+PASS  Setup then Fix: second run changes nothing (log empty)
+PASS  Healthy laptop 2: no change at all
+PASS  Silent run prints nothing to the screen
+PASS  Check mode: changes nothing
+PASS  Check mode: reports the problems (RED, exit 1)
+PASS  Leftover PowerShell listener stopped before Teeth starts
+PASS  Firewall rule with wrong port is recreated
+PASS  Print network already uses 192.168.50.x: refuses, RED, no IP set
+PASS  USB adapter that has a gateway: refuses, RED, no IP set, no adapter change
+PASS  No USB adapter: RED, no adapter change, built-in port untouched
+PASS  Laptop 1, cable out: RED with the cable text
+PASS  Laptop 1, cable out: message names the adapter lights
+PASS  Undo: no throw, exit 0, programs and data listed as untouched
+
+RESULT: 27 of 27 scenario checks passed
+

@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net48</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <RootNamespace>Teeth</RootNamespace>
+    <AssemblyName>Teeth</AssemblyName>
+    <LangVersion>7.3</LangVersion>
+    <Nullable>disable</Nullable>
+    <Platforms>AnyCPU;x64</Platforms>
+    <!-- System.Data.SQLite ships native interop DLLs per-architecture.
+         x64 keeps deployment simple: one set of native DLLs, matching
+         a standard 64-bit Windows PC target. -->
+    <PlatformTarget>x64</PlatformTarget>
+    <ApplicationIcon>Teeth.ico</ApplicationIcon>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Phase 1: offline-capable NuGet packages.
+         Restore these once on a machine with internet access (or an
+         offline package source) before building. -->
+    <PackageReference Include="System.Data.SQLite.Core" Version="1.0.118" />
+    <PackageReference Include="ClosedXML" Version="0.102.1" />
+  </ItemGroup>
+
+</Project>

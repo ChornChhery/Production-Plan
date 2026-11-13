@@ -1,0 +1,164 @@
+TEETH - TWO-LAPTOP SETUP, FINAL VERSION 2 (USB-Ethernet adapters), 2026-11-07
+(Result IN over the cable from laptop 1, Result OUT from the scanner on laptop 2)
+
+START HERE: open  START-HERE_Teeth_Quick_Visual_Guide.pdf : its 4 pages marked NEW (one click per laptop) come first, the numbered pages after them are the manual way.
+More detail if you need it: docs\Teeth_Full_Reference_Guide.pdf. This text file is the short version.
+
+EASIEST WAY (new in package 3): ONE CLICK PER LAPTOP   [not yet tested on a real Windows laptop: see STATUS]
+  You do NOT set the IP address yourself: the tool sets 192.168.50.1 on laptop 1 and 192.168.50.2 on laptop 2 (the manual steps 4 and 5 below are only the fallback).
+  LAPTOP 1 = the laptop with the key button (counts IN, runs TeethSender.exe). LAPTOP 2 = the laptop with the barcode scanner and the Teeth screen (counts OUT, runs Teeth.exe).
+  Do these steps in this order:
+  1. On any PC unzip BOTH zips: the outer zip, then Teeth_Project_2Laptops_FINAL.zip inside it. Never run the programs from inside a zip.
+  2. Copy the unzipped folder to BOTH laptops (a USB stick is fine; any folder is fine, the first click copies it to C:\Teeth).
+  3. Plug one USB-Ethernet adapter into each laptop (always the same USB port) and put the Ethernet cable between the two adapters.
+  4. LAPTOP 2 first, then LAPTOP 1: double-click  App Files\Tools\Run-Doctor-SelfTest.bat  (10 seconds, changes nothing).
+     It must end with "ALL CHECKS PASSED". If it says SOME CHECKS FAILED, stop and send the helper a photo of the window.
+  5. LAPTOP 2 first, then LAPTOP 1: double-click  TEETH-AUTO.bat  and click Yes when Windows asks for administrator permission.
+     The first time it asks "1 or 2": type 2 on laptop 2 (scanner, Teeth screen), type 1 on laptop 1 (key button, TeethSender).
+     If it asks "Update C:\Teeth?" and C:\Teeth is an old copy of Teeth: type y (your database and Log Data are kept).
+  6. Read the last big line: GREEN = ready.  YELLOW = works, read the notes.  RED = it tells you the one thing it cannot do by itself
+     (cable out, adapter missing, company IT policy, wrong clock). Fix that and double-click TEETH-AUTO.bat again.
+     If laptop 1 shows RED "no contact with 192.168.50.2" only because laptop 2 was not ready yet: finish laptop 2, then double-click TEETH-AUTO.bat on laptop 1 again.
+  7. Run the Doctor tests D1 to D15 once (page NEW 4 of the Quick Guide, or docs\Teeth_Two_Laptop_Plan.md). D1 and D2 only check what step 5 did; D3 to D9 are extra tests.
+  8. Every day: with the automatic tool you do not start the programs by hand, they start by themselves a short time after log-on; just look at the screen. The routine is on page 15 of the Quick Guide, titled "Every day: the screen and the routine".
+  9. About the number on laptop 1: the bar shows "Teeth link: OK (IN sent since start: N)". N is only a running total of the key presses that Teeth has confirmed since TeethSender was started. It does NOT reset at midnight or at a shift change, it goes back to 0 whenever TeethSender or laptop 1 is restarted (the automatic tool restarting TeethSender does this too), and it is NOT the shift or day total. The correct totals per shift (Day 08:00-20:00, Night 20:00-08:00, by the laptop 2 clock) are Result IN and Result OUT on the Teeth screen of laptop 2 and in Log Data\Teeth_Log.xlsx. The two numbers are expected to be different.
+  From then on use the copy in C:\Teeth (you can delete the unzipped copy).
+  What it does for you: copies the folder to C:\Teeth, saves the restore points, sets the IP on the USB adapter ONLY,
+  opens the two firewall rules (laptop 2), switches off USB power saving, starts Teeth / TeethSender, tests the link,
+  and creates a scheduled task "Teeth Doctor" that repeats the check at every log-on and every 5 minutes with NO window
+  and NO question: it sets the IP again if it was lost or the adapter moved to another USB port, adds a missing firewall rule,
+  stops a leftover test listener that blocks port 5055, and starts Teeth / TeethSender again if they were closed.
+  It never touches the built-in Ethernet port, the print software, the database, Log Data or the counts.
+  What no program can fix: unplugged or broken cable, missing or broken adapter, a wrong clock, IT policy that blocks the rules.
+  Result of the last run: App Files\Logs\LAST-STATUS.txt  (send this file to the helper if RED).
+  TEETH-CHECK-ONLY.bat = look and report, change nothing.   TEETH-UNDO.bat = remove the automatic setup again.
+  ALSO BY HAND: if .NET Framework 4.8 is missing the tool installs it by itself (it asks once; it finds ndp48-x86-x64-allos-enu.exe in the Teeth folder or downloads it if the PC has internet; 5 to 15 minutes, then restart the PC and run TEETH-AUTO.bat again); if Windows SmartScreen or antivirus warns about the files,
+  click More info > Run anyway (company IT may block it: then ask IT); fix whatever it marks RED (cable, adapter, clock, IT policy).
+  IF THE TOOL ITSELF FAILS OR BEHAVES STRANGELY: it cannot repair itself. Send the helper App Files\Logs\LAST-STATUS.txt (and Teeth-Doctor-log.txt),
+  and use the manual steps below and the Troubleshooting guide meanwhile. To stop the automatic checking: TEETH-UNDO.bat;
+  to stop only the automatic restart of the programs: RestartPrograms=false in App Files\teeth-doctor.ini.
+  The manual steps below stay valid as the fallback if the automatic way does not work on a laptop.
+
+WHAT IS IN THE MAIN FOLDER (the programs are right here, not in a sub-folder)
+  Teeth.exe                 run on LAPTOP 2: counts OUT, shows the screen
+  TeethSender.exe           run on LAPTOP 1: counts IN from the key button
+  TEETH-AUTO.bat           BOTH laptops: ONE CLICK = automatic setup (first time) and automatic check + repair (afterwards)
+  TEETH-CHECK-ONLY.bat     BOTH laptops: looks and reports, changes nothing
+  TEETH-UNDO.bat           BOTH laptops: removes the automatic setup
+  Test-Link.bat             laptop 1: tests the link to laptop 2
+  START-HERE_Teeth_Quick_Visual_Guide.pdf   short guide: pictures and flows, follow this
+  Teeth_Troubleshooting_Guide.pdf   something wrong? one page per problem: picture, commands, fix
+  Teeth_Rollout_Kit.pdf             using it on MORE laptop pairs: pre-flight check, checklist, record sheet
+  SETUP-TWO-LAPTOPS.txt     this file
+  SENDER-HOW-TO.txt         notes for TeethSender (laptop 1)
+  App Files\                needed by Teeth.exe, keep it next to the exes:
+                              lib, Tools (Teeth-Doctor.ps1 + Teeth-Doctor-Hidden.vbs = the automatic program; firewall bat, checks), Logs (Doctor log), Source (Teeth code),
+                              Source_Sender (TeethSender code), Backup (old exe, v1 guide and plan),
+                              README.md. Teeth.sqlite and link.ini are created on first run.
+  Log Data\                 Excel log of every shift (Teeth_Log.xlsx)
+  docs\                     Teeth_Full_Reference_Guide.pdf (17 pages, every detail), AI_CONTEXT.md,
+                              Teeth_Two_Laptop_Plan.md, pictures
+Copy the WHOLE folder (all of the above) to C:\Teeth on BOTH laptops.
+  Laptop 2 runs only Teeth.exe.  Laptop 1 runs only TeethSender.exe.  Never run Teeth.exe on laptop 1.
+  sender.ini and pending.txt are created next to TeethSender.exe on laptop 1.
+
+WHAT CHANGED IN VERSION 2 (USB adapters; the one-click tool of package 3 is described above)
+  Both laptops already use their built-in Ethernet port for the print software.
+  So the Teeth link uses a SECOND port: one USB-to-Ethernet adapter on each laptop,
+  with the cable between the two adapters. The built-in port is NEVER changed, so
+  printing is not affected. Teeth.exe and TeethSender.exe need no change.
+
+MANUAL ORDER OF WORK = fallback if TEETH-AUTO.bat is not used or does not work  (24 steps in 2 phases; every step says which laptop; do them in number order)
+  START HERE with step 1.
+
+PHASE 1 - prove the network WITHOUT our software (steps 1-15)   [passed on the owner's real laptops]
+  1. BOTH:     Restore points. cmd:  ipconfig /all > "%USERPROFILE%\network-before-teeth.txt"
+               LAPTOP 2 (cmd as administrator):  netsh advfirewall export "%USERPROFILE%\firewall-before-teeth.wfw"
+               Print one test label on each laptop: it must work.
+  2. BOTH:     Set date, time and time zone BY HAND (no internet). Shifts follow the laptop 2 clock.
+  3. BOTH:     Plug a USB-Ethernet adapter into each laptop (always the same USB port) and connect
+               the cable between the two adapters. Port lights on.
+  4. LAPTOP 1: Win+R, ncpa.cpl. USB adapter only: IP 192.168.50.1, mask 255.255.255.0, gateway and DNS EMPTY.
+               (Check the print network does not already use 192.168.50.x; if it does use another range.)
+  5. LAPTOP 2: Same on its USB adapter: IP 192.168.50.2, mask 255.255.255.0, no gateway, no DNS.
+  6. BOTH:     ipconfig: the USB adapter shows your address; the built-in port is unchanged.
+               LAPTOP 1: ping 192.168.50.2. No reply is NORMAL now (Windows blocks ping until step 8).
+  7. LAPTOP 2: cmd:  netstat -ano | findstr :5055   It must print NOTHING (port free).
+  8. LAPTOP 2: cmd as administrator, two commands (each one line, each answers Ok.):
+               netsh advfirewall firewall add rule name="Teeth link" dir=in action=allow protocol=TCP localport=5055 profile=any remoteip=192.168.50.0/24
+               netsh advfirewall firewall add rule name="Teeth ping" dir=in action=allow protocol=icmpv4:8,any profile=any remoteip=192.168.50.0/24
+               (Only incoming traffic from the cable network. Undo: Remove-Teeth-Firewall-Rules.bat or the two "delete rule" commands.)
+  9. LAPTOP 1: ping 192.168.50.2 now gets 4 replies.
+ 10. LAPTOP 2: PowerShell: start the stand-in listener (one line, see docs\AI_CONTEXT.md, or later run
+               App Files\Tools\Test-Port-Listener.bat). It prints "Listening on 5055". Leave it open.
+ 11. LAPTOP 1: PowerShell:  Test-NetConnection 192.168.50.2 -Port 5055   -> TcpTestSucceeded : True
+               (InterfaceAlias is the USB adapter). Laptop 2 prints "Connection from 192.168.50.1...".
+ 12. LAPTOP 2: Press Ctrl+C in the listener window and close it (otherwise Teeth shows "port busy").
+ 13. LAPTOP 1: Notepad, click inside, press the key button once: "p" and a new line.
+ 14. LAPTOP 2: Notepad, click inside, scan one item: the full code at once, then a new line.
+ 15. BOTH:     Print one label on each laptop: printing works as before.   >> Phase 1 complete.
+
+PHASE 2 - install and test our programs (steps 16-24)   [Build 2 confirmed working by the owner on both laptops]
+ 16. BOTH:     Unblock the ZIP (right-click > Properties > Unblock), extract, copy the WHOLE folder to C:\Teeth
+               on both laptops. To keep old history on laptop 2, keep your old App Files\Teeth.sqlite and Log Data.
+ 17. BOTH:     Run App Files\Tools\Check-Requirements.bat: 64-bit Windows + .NET Framework 4.8. (If .NET 4.8 is missing, TEETH-AUTO.bat installs it by itself.)
+ 18. LAPTOP 2: Double-click Teeth.exe and LEAVE IT OPEN. Red "Laptop 1: NOT connected" is normal now.
+ 19. LAPTOP 2: Double-click Test-Link.bat: "RESULT: OK - Teeth is listening". If not, start Teeth.exe and run it again.
+ 20. LAPTOP 1: Only after step 19: double-click Test-Link.bat: "RESULT: OK". If not, it prints what to check.
+ 21. LAPTOP 1: Double-click TeethSender.exe. The bar goes green and Teeth turns "Laptop 1: Connected".
+               Tray icon > Show last keys (test) lists P then Enter. Optional: shortcut in shell:startup (Win+R).
+ 22. LAPTOP 1: Press the key button. The label prints. On laptop 2 Result IN goes up by 1.
+ 23. LAPTOP 2: Scan one item. The label prints. Result OUT goes up by 1. Typing a name changes nothing.
+ 24. BOTH:     Print one label on each laptop: printing works as before. Then run the 12 acceptance tests
+               in docs\Teeth_Two_Laptop_Plan.md.
+  Test-Link.bat is run on BOTH laptops: laptop 2 first (step 19), then laptop 1 (step 20).
+
+PROBLEMS WE ALREADY MET (details: Teeth_Troubleshooting_Guide.pdf)
+  - Ping times out but the cable is fine: Windows blocks ping by default. Add the 'Teeth ping' rule (step 8).
+  - Test-Link.bat on laptop 2 says ping replies but NOT OK: it pinged itself. Open Teeth first; on laptop 2 the
+    new Test-Link only checks that Teeth is listening. Run it on laptop 2 first, then on laptop 1.
+  - Window 'Unhandled exception ... Method not found: String.Split': that is build 1. Use Build 2 (VERSION.txt).
+  - Teeth.exe only on laptop 2, TeethSender.exe only on laptop 1.
+  - The firewall rules and the USB adapter do not change your Ethernet or print software.
+
+IF THE CABLE IS UNPLUGGED OR MOVED (details: Teeth_Troubleshooting_Guide.pdf, problem 14)
+  - Plug it back into the SAME USB adapters and wait up to 10 seconds: both screens turn green by themselves.
+    IN key presses made meanwhile wait on laptop 1 (pending.txt) and arrive once each. OUT scans never use the cable.
+  - Do not close TeethSender while the cable is out: it holds the waiting counts.
+  - USB adapter moved to another USB port? Set the IP again on the new adapter (steps 4 and 5); use the same port every time.
+  - NOT protected: IN presses while TeethSender.exe is not running, OUT scans while Teeth.exe is closed.
+    Add missed counts in the Teeth window: Ctrl+Alt+I (+1 IN), Ctrl+Alt+O (+1 OUT). Put both exes in startup (shell:startup).
+
+USB ADAPTER CAUTIONS
+  - Always use the same USB port; another port can look like a new adapter with default settings.
+  - If the link drops after idle time: Device Manager > adapter > Properties > Power
+    Management > untick "Allow the computer to turn off this device to save power".
+  - If the cable network is marked Public, that is fine: the firewall rules are for all profiles (but only from the cable network 192.168.50.0/24).
+  - If the laptop is managed by company IT, hand-made firewall rules can be ignored: ask IT to allow incoming TCP 5055 from 192.168.50.0/24.
+
+KEYS ON TEETH
+  Enter, Space : count nothing (the scanner and the cable do the counting)
+  Ctrl+Alt+I   : +1 IN  (fallback if the cable is out)
+  Ctrl+Alt+O   : +1 OUT (fallback if the scanner is out)
+  Ctrl+Alt+S   : Change Schedule
+
+STATUS
+  Package 4 (2026-11-12, Doctor 2): installs .NET 4.8, checks the time zone, one adapter off/on, counts safety net; NOT yet tested on a real Windows laptop. Package 3 (2026-11-11): TEETH-AUTO.bat / Teeth Doctor passed 94 automatic checks (now 113: 42 logic, 36 simulated-PC scenarios, 35 static; all passed):
+  the decision logic, 27 situations on a simulated PC (fresh laptop 1 and 2, second run changes nothing, check-only, cable out, adapter missing,
+  print network already on 192.168.50.x, USB adapter with a gateway, undo ...) and static checks for Windows PowerShell 5.1.
+  BEFORE you use it on a PC: double-click App Files\Tools\Run-Doctor-SelfTest.bat (a few seconds, changes nothing, tests with that PC's own PowerShell).
+  The real Windows parts (IP, firewall, scheduled task, starting the programs) still need the Doctor acceptance tests D1-D15 (D10-D15 are new) in
+  docs\Teeth_Two_Laptop_Plan.md. Teeth.exe is unchanged (Build 2); TeethSender.exe is Build 2b: only the wording of its bar changed (see item 9 above).
+  Proven on the real laptops (Phase 1): addresses, firewall rules, port 5055 across the cable, key button,
+  scanner and printing. Phase 2: build 1 of Teeth.exe showed "Method not found ... String.Split" at step 18.
+  Fixed in BUILD 2 (2026-11-08, see VERSION.txt): copy the new Teeth.exe and TeethSender.exe. Build 2 was
+  confirmed working by the owner on both laptops (2026-11-08).
+  Follow the quick guide and the 12 acceptance tests in docs\Teeth_Two_Laptop_Plan.md.
+
+UPDATE 2026-11-12 (Doctor 2)
+  - Always run TEETH-AUTO.bat from C:\Teeth (another copy of the folder has its own empty database).
+  - Laptop 2 keeps a backup of IN/OUT in C:\ProgramData\Teeth and puts it back if the database shows 0 / 0 in the same shift.
+  - The time zone is checked (default SE Asia Standard Time, key TimeZone= in App Files\teeth-doctor.ini).
+  - "Disconnected" on laptop 1: the tool tries one off/on of the USB adapter; if it stays Disconnected it is the cable or adapter.
+  Limits: the counts safety net does not restore when Teeth starts with a brand-new empty database; Reset Result + a Teeth restart inside 5 minutes can bring old counts back.
+  Test it: Run-Doctor-SelfTest.bat, then TEETH-CHECK-ONLY.bat, then TEETH-AUTO.bat from C:\Teeth, then tests D10-D15 (docs\Teeth_Two_Laptop_Plan.md).

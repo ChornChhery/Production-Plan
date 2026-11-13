@@ -1,0 +1,30 @@
+TEETH package version
+
+Package 4 - 2026-11-12  (Doctor 2: .NET 4.8 auto-install, time zone check, adapter off/on, counts safety net; Teeth.exe and TeethSender.exe unchanged)
+  Tests: 35 static + 42 logic + 36 scenario = 113 passed in the simulator (App Files\Source_Build\doctor-tests\RESULT-2026-11-12.txt). NOT yet run on a real Windows laptop: run Run-Doctor-SelfTest.bat, then the tests D10-D15 in docs\Teeth_Two_Laptop_Plan.md.
+
+Package 3 - 2026-11-11  (Teeth.exe unchanged = Build 2; TeethSender.exe = Build 2b, see below)
+  NEW: TEETH-AUTO.bat = one click on each laptop: automatic setup the first time, automatic check and repair afterwards.
+  NEW: TEETH-CHECK-ONLY.bat (looks, changes nothing) and TEETH-UNDO.bat (removes the automatic setup).
+  NEW: App Files\Tools\Teeth-Doctor.ps1 and Teeth-Doctor-Hidden.vbs (the program behind it), App Files\Logs (log files).
+  Teeth.exe is the same Build 2 file that the owner confirmed working on 2026-11-08 (byte for byte).
+  TeethSender.exe = Build 2b: ONLY the wording of the bar on laptop 1 changed, from "IN sent: N" to "IN sent since start: N" (the number was never a day or shift total).
+  Nothing else changed in the link code (the link simulation still passes 13 of 13). The Build 2 sender is kept in App Files\Backup\TeethSender_Build2.exe.
+  About the number on laptop 1: the bar shows "Teeth link: OK (IN sent since start: N)". N is only a running total of the key presses that Teeth has confirmed since TeethSender was started. It does NOT reset at midnight or at a shift change, it goes back to 0 whenever TeethSender or laptop 1 is restarted (the automatic tool restarting TeethSender does this too), and it is NOT the shift or day total. The correct totals per shift (Day 08:00-20:00, Night 20:00-08:00, by the laptop 2 clock) are Result IN and Result OUT on the Teeth screen of laptop 2 and in Log Data\Teeth_Log.xlsx. The two numbers are expected to be different.
+  STATUS: Teeth Doctor is NOT yet tested on a real Windows laptop. It passed 94 automatic checks here (SUPERSEDED: Doctor 2 passes 113 = 42 logic + 36 scenarios + 35 static)
+  (App Files\Source_Build\doctor-tests; the run on THIS PC: App Files\Tools\Run-Doctor-SelfTest.bat). Run the Doctor acceptance tests D1-D15 in docs\Teeth_Two_Laptop_Plan.md.
+  The manual 24 steps stay valid as the fallback.
+
+Build 2 - 2026-11-08
+  Teeth.exe and TeethSender.exe rebuilt against the real .NET Framework 4.8 reference assemblies.
+  Fixes: "Unhandled exception ... Method not found: String[] String.Split(Char, StringSplitOptions)"
+  (Plan and Target stayed empty; seen on both laptops at step 18 with build 1).
+  Old exes are kept in App Files\Backup (Teeth_build1_Split-bug.exe, TeethSender_build1.exe).
+
+Confirmed working by the owner on both laptops, 2026-11-08.
+
+If you see that error, your Teeth.exe is build 1: copy Teeth.exe and TeethSender.exe from the newest zip.
+
+Doctor 2 (2026-11-12): TEETH-AUTO.bat now installs .NET Framework 4.8 by itself when it is missing (asks once), tries one adapter off/on when the USB adapter says Disconnected, and checks/fixes the time zone (keeps the clock time). Tests: 35 static, 32 logic, 32 scenario checks pass (on PowerShell 7 in a simulator; not yet on a real Windows laptop).
+Doctor 2 also: counts safety net on Laptop 2 (backup of IN/OUT outside the Teeth folder, restore when the database is 0/0 in the same shift, before Teeth starts). 35 static, 42 logic, 36 scenario checks pass in a simulator.
+Documents 2026-11-12: the 4 PDFs have an added last page "UPDATE 2026-11-12 - Doctor 2"; plan, AI_CONTEXT, README, SETUP-TWO-LAPTOPS and SENDER-HOW-TO updated.
