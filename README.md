@@ -15,6 +15,10 @@
 [![Real laptop tests](https://img.shields.io/badge/Real%20laptop%20tests-D1--D15%20passed-brightgreen?style=flat-square)](#testing)
 <!-- After your workflow runs once, enable this badge (change ci.yml to your workflow file name):
 [![CI](https://github.com/ChornChhery/Production-Plan/actions/workflows/ci.yml/badge.svg)](https://github.com/ChornChhery/Production-Plan/actions/workflows/ci.yml) -->
+[![Stars](https://img.shields.io/github/stars/ChornChhery/Production-Plan?style=flat-square&logo=github)](https://github.com/ChornChhery/Production-Plan/stargazers)
+[![Issues](https://img.shields.io/github/issues/ChornChhery/Production-Plan?style=flat-square)](https://github.com/ChornChhery/Production-Plan/issues)
+[![Last commit](https://img.shields.io/github/last-commit/ChornChhery/Production-Plan?style=flat-square)](https://github.com/ChornChhery/Production-Plan/commits)
+[![Release](https://img.shields.io/github/v/release/ChornChhery/Production-Plan?style=flat-square&include_prereleases)](https://github.com/ChornChhery/Production-Plan/releases)
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-ff69b4?style=flat-square)](#contributing)
 
 **Count what goes IN and what comes OUT of a production line, compare it with the plan on a big screen, and keep an Excel log of every shift.**
@@ -24,8 +28,10 @@ Two laptops, two USB-Ethernet adapters, one cable. No router, no internet, no se
 [How it works](#how-it-works) ·
 [Diagrams](#architecture-and-diagrams) ·
 [Documentation](#documentation) ·
-[Report a bug](https://github.com/ChornChhery/Production-Plan/issues) ·
-[Request a feature](https://github.com/ChornChhery/Production-Plan/issues)
+[Report a bug](https://github.com/ChornChhery/Production-Plan/issues/new/choose) ·
+[Request a feature](https://github.com/ChornChhery/Production-Plan/issues/new/choose)
+
+[**⬇️ Download the latest release**](https://github.com/ChornChhery/Production-Plan/releases/latest) · [**⭐ Star this repository**](https://github.com/ChornChhery/Production-Plan)
 
 </div>
 
@@ -48,12 +54,15 @@ Two laptops, two USB-Ethernet adapters, one cable. No router, no internet, no se
 14. [Build from source](#build-from-source)
 15. [Testing](#testing)
 16. [Troubleshooting](#troubleshooting)
-17. [Project status and limits](#project-status-and-limits)
-18. [Roadmap](#roadmap)
-19. [Documentation](#documentation)
-20. [Contributing](#contributing)
-21. [License](#license)
-22. [Contact and acknowledgments](#contact-and-acknowledgments)
+17. [FAQ](#faq)
+18. [Security](#security)
+19. [Project status and limits](#project-status-and-limits)
+20. [Roadmap](#roadmap)
+21. [Changelog](#changelog)
+22. [Documentation](#documentation)
+23. [Contributing](#contributing)
+24. [License](#license)
+25. [Contact and acknowledgments](#contact-and-acknowledgments)
 
 </details>
 
@@ -520,6 +529,7 @@ Production-Plan/
 ├── Teeth_Rollout_Kit.pdf
 ├── SETUP-TWO-LAPTOPS.txt · SENDER-HOW-TO.txt · VERSION.txt
 ├── assets/                        README banner, animations (SVG), images
+├── CHANGELOG.md · CONTRIBUTING.md · CODE_OF_CONDUCT.md · SECURITY.md
 └── LICENSE
 ```
 
@@ -573,6 +583,61 @@ Full guide: [`Teeth_Troubleshooting_Guide.pdf`](Teeth_Troubleshooting_Guide.pdf)
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
+## FAQ
+
+<details>
+<summary><b>Will it stop my label printing?</b></summary>
+
+No. The Teeth link uses a **second** network port (a USB adapter) with its own private addresses. The built-in Ethernet port and the print software are never changed, and TeethSender and Teeth only *listen* to the keys, they never block them.
+</details>
+
+<details>
+<summary><b>Do I need internet, a router or a server?</b></summary>
+
+No. The two laptops are joined by one cable. The only time internet helps is to download the .NET Framework 4.8 installer on an old PC, and you can copy that file from a USB stick instead.
+</details>
+
+<details>
+<summary><b>What happens if the cable is pulled out?</b></summary>
+
+Nothing is lost. Each key press waits in `pending.txt` with a unique id and is sent again when the link is back. Laptop 2 counts each id once. See [No lost presses](#no-lost-presses).
+</details>
+
+<details>
+<summary><b>What happens when a laptop restarts or crashes?</b></summary>
+
+Both programs start by themselves at log-on. Teeth saves the counts to SQLite every 3 seconds and restores them in the same shift, and the Doctor keeps a second backup outside the Teeth folder.
+</details>
+
+<details>
+<summary><b>Can I use it for more than one line?</b></summary>
+
+Yes, with **one pair of laptops per line**. Each pair has its own cable, database and Excel log. One sender laptop per screen is supported; several senders for one screen is not. See [`Teeth_Rollout_Kit.pdf`](Teeth_Rollout_Kit.pdf).
+</details>
+
+<details>
+<summary><b>Which shifts does it use, and can I change the schedule?</b></summary>
+
+Day `08:00-20:00` and Night `20:00-08:00`. The line name, the plan and the work blocks (with breaks and targets) are edited with **Change Schedule**. The clock of laptop 2 drives the shifts, so keep its date, time and time zone correct.
+</details>
+
+<details>
+<summary><b>How do I remove it?</b></summary>
+
+Run `TEETH-UNDO.bat`. It removes the scheduled task, the two firewall rules and the adapter address. The programs, the database and the Excel log stay.
+</details>
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+## Security
+
+- The link is a **direct cable** on a private network (`192.168.50.0/24`, no gateway). The firewall rules the tool adds accept **incoming** connections only from that network, on TCP port `5055`.
+- The programs need no internet and send no data anywhere.
+- The admin PIN is a setting, not a value built into the program. Keep real PINs, `Teeth.sqlite` and the Excel logs out of the repository (the `.gitignore` excludes them).
+- Found a vulnerability? Please follow [`SECURITY.md`](SECURITY.md) and do not open a public issue.
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
 ## Project status and limits
 
 - ✅ **In use on real laptops.** The manual setup, the one-click `TEETH-AUTO.bat` and the Teeth Doctor passed the acceptance tests D1 to D15.
@@ -603,6 +668,12 @@ See the [open issues](https://github.com/ChornChhery/Production-Plan/issues) for
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
+## Changelog
+
+Every release is listed in [`CHANGELOG.md`](CHANGELOG.md) and on the [Releases page](https://github.com/ChornChhery/Production-Plan/releases).
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
 ## Documentation
 
 | Document | For |
@@ -619,7 +690,7 @@ See the [open issues](https://github.com/ChornChhery/Production-Plan/issues) for
 
 ## Contributing
 
-Contributions make the project better for everyone. Any contribution is **appreciated**.
+Contributions make the project better for everyone. Any contribution is **appreciated**. Please read [`CONTRIBUTING.md`](CONTRIBUTING.md) and the [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) first.
 
 1. Fork the project
 2. Create a branch: `git checkout -b feature/my-improvement`
@@ -629,6 +700,12 @@ Contributions make the project better for everyone. Any contribution is **apprec
 6. Open a **Pull Request**
 
 Never commit real production data (`Teeth.sqlite`, `Log Data\*.xlsx`, `pending.txt`); the `.gitignore` already excludes them.
+
+### Contributors
+
+<a href="https://github.com/ChornChhery/Production-Plan/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=ChornChhery/Production-Plan" alt="Contributors" />
+</a>
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 

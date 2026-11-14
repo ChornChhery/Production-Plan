@@ -1,0 +1,42 @@
+name: Bug report
+description: Something does not work as expected
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Thanks for reporting. First try `TEETH-AUTO.bat` and read the last big line (GREEN, YELLOW, RED).
+  - type: dropdown
+    id: laptop
+    attributes:
+      label: Which laptop?
+      options: [Laptop 1 (key button), Laptop 2 (scanner and screen), Both]
+    validations: {required: true}
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what did you expect?
+    validations: {required: true}
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: "1. ...\n2. ..."
+  - type: input
+    id: windows
+    attributes:
+      label: Windows version and .NET Framework version
+      placeholder: Windows 10 22H2, .NET 4.8
+  - type: input
+    id: version
+    attributes:
+      label: Project version
+      placeholder: v1.0.0
+  - type: textarea
+    id: status
+    attributes:
+      label: Contents of App Files\Logs\LAST-STATUS.txt
+      render: text
+  - type: textarea
+    id: more
+    attributes:
+      label: Anything else (counts-history.txt, screenshots)
