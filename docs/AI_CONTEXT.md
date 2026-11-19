@@ -21,7 +21,7 @@ Both laptops run print software that generates label information for printers an
 - IN: laptop 1 detects `P` then `Enter` within `KeyWindowMs` (500) via a system-wide keyboard hook on its own thread (keys are never blocked, so the print software still receives them), sends `IN <id>`; Teeth counts it once and replies `OK <id>`. A repeated id is answered but not counted again (last 5000 ids kept in memory only).
 - Unconfirmed IN counts wait in `pending.txt` on laptop 1 and are resent (survives restart of laptop 1 or Teeth closed).
 - Heartbeat: `PING` every 2 s, `PONG` back. Teeth shows **Laptop 1: Connected** (green) or **NOT connected** (red after `LinkTimeoutSeconds`, default 6) or **Link error: port 5055 busy**. The Sender bar (bottom-right, always on top, no focus) shows `Teeth link: OK (IN sent since start: n)`, `NOT CONNECTED (waiting: n)` or `Key hook NOT running`.
-- OUT: Teeth (laptop 2) uses its own keyboard hook; a scan = at least `ScanMinChars` (4) characters each within `ScanMaxGapMs` (50) of the previous, ended by `Enter`. Enter and Space typed alone count nothing. Fallbacks in the Teeth window: `Ctrl+Alt+I` = +1 IN, `Ctrl+Alt+O` = +1 OUT, `Ctrl+Alt+S` = Change Schedule.
+- OUT: Teeth (laptop 2) uses its own keyboard hook; a scan = at least `ScanMinChars` (4) characters each within `ScanMaxGapMs` (50) of the previous, ended by `Enter`. Enter and Space typed alone count nothing. **Since 2026-11-19 each scan is also checked for duplicates (see section 11): the typed text is read, and the same QR code is counted only once.** Fallbacks in the Teeth window: `Ctrl+Alt+I` = +1 IN, `Ctrl+Alt+O` = +1 OUT, `Ctrl+Alt+S` = Change Schedule.
 - Shift, target and log follow the **laptop 2 clock**. Offline laptops need the date, time and time zone set by hand and checked weekly.
 
 ## 3. Files (all programs are in the MAIN folder of the zip)
@@ -41,7 +41,7 @@ Teeth_Project_2Laptops_FINAL.zip
   App Files/                lib/ (dlls), README.md, Backup/ (old exe, v1 guide + plan), Tools/
                             (Teeth-Doctor.ps1, Teeth-Doctor-Hidden.vbs [NEW], Allow-Laptop1-Firewall.bat, Check-Requirements.bat, Update-App.bat, Test-Link.ps1, ...),
                             Logs/ (created by the Doctor: Teeth-Doctor-log.txt, LAST-STATUS.txt), teeth-doctor.ini (created by the Doctor),
-                            Source/ (Teeth.sln; new: LinkSettings.cs LinkServer.cs ScanDetector.cs; updated MainDashboard.cs),
+                            Source/ (Teeth.sln; new: LinkSettings.cs LinkServer.cs ScanDetector.cs ScanGuard.cs; updated MainDashboard.cs DatabaseManager.cs),
                             Source_Sender/ (TeethSender.sln; Program.cs LinkClient.cs PrintKeyDetector.cs SenderSettings.cs)
                             Teeth.sqlite + link.ini are created on first run
   docs/                     Teeth_Full_Reference_Guide.pdf (17 pages, every detail), AI_CONTEXT.md,
@@ -52,7 +52,7 @@ The whole folder is copied to `C:\Teeth` on BOTH laptops. `Teeth.exe` finds `App
 ## 4. Settings
 | File | Key | Default |
 |---|---|---|
-| `App Files\link.ini` | `Port` 5055, `LinkTimeoutSeconds` 6, `ScanEnabled` true, `ScanMinChars` 4, `ScanMaxGapMs` 50 | created on first run |
+| `App Files\link.ini` | `Port` 5055, `LinkTimeoutSeconds` 6, `ScanEnabled` true, `ScanMinChars` 4, `ScanMaxGapMs` 50, `DuplicateCheck` true, `DuplicateScope` shift, `ValidCodesFile` (empty) | created on first run |
 | `sender.ini` (next to TeethSender.exe) | `Host` 192.168.50.2, `Port` 5055, `KeyWindowMs` 500 | created on first run |
 
 Changing `Port` also needs `PORT` in `Allow-Laptop1-Firewall.bat` (run again as administrator). Changing the address range also needs `Host` in `sender.ini` and `HOST` in `Test-Link.bat`.
@@ -155,7 +155,7 @@ Counts held during an outage are counted in the shift running when they arrive. 
 ## 8. Open questions for the owner
 1. Does print software on laptop 2 print straight from the scan or via a separate button?
 2. Count the scan as OUT, or only after a label really prints (needs Windows print log enabled by an administrator)?
-3. Log the scanned code in the Excel log?
+3. Log the scanned code in the Excel log? (Not done: refused scans go to `App Files\Logs\Scan-Rejected.txt`, counted codes are in the SQLite table `ScannedCodes`.)
 4. Supervisor subtraction (Sensor Correction field for IN and OUT)?
 5. Does the print network use 192.168.50.x? How is each printer connected (USB, Ethernet to the printer, company network)?
 
@@ -173,7 +173,19 @@ Teeth: `App Files\Source\Teeth.sln`, Release + x64, Rebuild, close Teeth.exe, ru
 - Ask for the exact on-screen text, the step or test number, and the "Show last keys (test)" result.
 - Keep answers short and in simple words; the owner is not a developer.
 
-## Documents (version of 2026-11-12, Doctor 2)
-The four PDFs were rebuilt for this version: their front chapters describe TEETH-AUTO.bat as it is now (the Quick Visual Guide has a 7-page one-click chapter with two flowcharts: the workflow and what to do when it is not green); the manual numbered pages are unchanged and still valid. `Teeth_Two_Laptop_Plan.md` has the section on Doctor 2 and the tests D1-D15. Open question for the owner: which number dropped to 0 - the Laptop 1 "IN sent since start" bar (expected, resets when TeethSender restarts) or Result IN/OUT on laptop 2?
+## Documents updated 2026-11-12 (Doctor 2)
+The four PDFs got an added last page "UPDATE 2026-11-12 - Doctor 2"; the older pages were not rewritten. `Teeth_Two_Laptop_Plan.md` has a new section at the end. When these differ, the update page/section is right. Open question for the owner: which number dropped to 0 - the Laptop 1 "IN sent since start" bar (expected, resets when TeethSender restarts) or Result IN/OUT on laptop 2?
 
 Limits of Step-CountsGuard: it does NOT restore when Teeth starts with a brand-new empty database (the Doctor cannot read a missing database); it can bring old counts back if Reset Result is followed by a Teeth restart inside the 5-minute window. Test results: App Files\Source_Build\doctor-tests\RESULT-2026-11-12.txt (35 static + 42 logic + 36 scenario = 113, simulator only). How to run: Run-Doctor-SelfTest.bat, TEETH-CHECK-ONLY.bat, TEETH-AUTO.bat from C:\Teeth, then tests D1-D15.
+
+## 11. Duplicate QR scan (2026-11-19, Package 5)
+Problem reported by the owner: on laptop 2 one QR code scanned several times was counted +1 OUT every time. Cause: `ScanDetector` only detected "N or more keys fast + Enter" and never read the code, so Teeth could not tell a repeat from a new code.
+Fix (Teeth.exe only; TeethSender and the Doctor are unchanged):
+- `ScanDetector.cs`: now collects the characters of the burst (`ToUnicodeEx`, Shift/Caps respected, flag 4 = keyboard state untouched) and raises `ScanDetected(string)`.
+- `ScanGuard.cs` (new): `Check(code, shiftKey, now)` returns Accept / Duplicate / Unknown / Unreadable. Code is normalised with `Trim().ToUpperInvariant()`. Optional `ValidCodesFile` (text/CSV, first column, re-read when the file changes; a missing file does not block the line). `LogRejected` appends to `App Files\Logs\Scan-Rejected.txt`.
+- `DatabaseManager.cs`: table `ScannedCodes (Id, Code, ShiftKey, ScannedAt)`; `FindScan`, `AddScan`, `ClearScans`, `PurgeOldScans` (60 days).
+- `MainDashboard.cs`: `HandleScan` on the UI thread. Accept: `IncrementCountOut`, remember the code, save the counts at once, green label. Duplicate/Unknown: no count, red label for 15 s, beep (`SystemSounds.Hand`), log line. Unreadable (empty text): counted as before, orange label. Reset Result calls `ForgetAll`. A new label `_lblScan` sits under the link light.
+- `link.ini`: `DuplicateCheck` (true), `DuplicateScope` (`shift` default | `day` | `always`), `ValidCodesFile`. Old ini files without these keys get the defaults.
+Behaviour notes: the same code counts again in the next shift (scope shift) and after Reset Result; `Ctrl+Alt+O` still adds +1 OUT without any check; scans made while the Change Schedule window is open are checked and the count is held (deferred) as before; closing Teeth does not forget codes. Duplicate check cannot work if the QR text differs on every scan.
+Tests: `App Files\Source_Build\scan-tests\Test-ScanGuard.cs` + `run-tests.sh` (Mono + Mono.Data.Sqlite on Linux, 17 checks passed: first/again/different, case+space, restart, shift/day/always scope, valid list, missing list, Reset). Teeth.exe compiled with `build-with-mono.sh` against `/usr/lib/mono/4.8-api`, no errors.
+**NOT tested on a real Windows laptop with the real scanner:** the character reading in `ScanDetector` (Windows API). First thing to ask the owner if a code looks wrong or empty: what does the QR type in Notepad (prefix/suffix, Tab, special characters, keyboard layout)? Old exe: `App Files\Backup\Teeth_before_duplicate_fix.exe`.

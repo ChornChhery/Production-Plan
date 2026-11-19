@@ -85,6 +85,16 @@ namespace Teeth
                         LastLoggedIn    INTEGER NULL,
                         LastLoggedOut   INTEGER NULL
                     );
+
+                    CREATE TABLE IF NOT EXISTS ScannedCodes (
+                        Id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                        Code        TEXT NOT NULL,
+                        ShiftKey    TEXT NULL,
+                        ScannedAt   TEXT NOT NULL
+                    );
+
+                    CREATE INDEX IF NOT EXISTS IX_ScannedCodes_Code
+                        ON ScannedCodes (Code);
                 ";
                 cmd.ExecuteNonQuery();
 
@@ -428,6 +438,87 @@ namespace Teeth
                 cmd.Parameters.AddWithValue("@out", (object)countOut ?? DBNull.Value);
                 cmd.ExecuteNonQuery();
             }
+        }
+
+        // ------------------------------------------------------------------
+        //  SCANNED QR CODES  (duplicate check for Result OUT)
+        // ------------------------------------------------------------------
+
+        private const string StampFormat = "yyyy-MM-dd HH:mm:ss";
+
+        /// <summary>When was this code counted before (within the scope), or null.
+        /// scope: "shift" (same shiftKey), "day" (since 00:00 today) or "always".</summary>
+        public DateTime? FindScan(string code, string scope, string shiftKey, DateTime now)
+        {
+            using (var conn = OpenConnection())
+            using (var cmd = conn.CreateCommand())
+            {
+                string where = "Code = @code";
+                if (scope == "shift")
+                {
+                    where += " AND ShiftKey = @shift";
+                    cmd.Parameters.AddWithValue("@shift", (object)shiftKey ?? DBNull.Value);
+                }
+                else if (scope == "day")
+                {
+                    where += " AND ScannedAt >= @dayStart";
+                    cmd.Parameters.AddWithValue("@dayStart",
+                        now.Date.ToString(StampFormat, System.Globalization.CultureInfo.InvariantCulture));
+                }
+
+                cmd.CommandText = "SELECT ScannedAt FROM ScannedCodes WHERE " + where + " ORDER BY Id ASC LIMIT 1;";
+                cmd.Parameters.AddWithValue("@code", code);
+
+                object o = cmd.ExecuteScalar();
+                if (o == null || o == DBNull.Value) return null;
+
+                DateTime parsed;
+                if (DateTime.TryParseExact(Convert.ToString(o), StampFormat,
+                        System.Globalization.CultureInfo.InvariantCulture,
+                        System.Globalization.DateTimeStyles.None, out parsed))
+                {
+                    return parsed;
+                }
+                return now;
+            }
+        }
+
+        public void AddScan(string code, string shiftKey, DateTime now)
+        {
+            using (var conn = OpenConnection())
+            using (var cmd = conn.CreateCommand())
+            {
+                cmd.CommandText = "INSERT INTO ScannedCodes (Code, ShiftKey, ScannedAt) VALUES (@code, @shift, @at);";
+                cmd.Parameters.AddWithValue("@code", code);
+                cmd.Parameters.AddWithValue("@shift", (object)shiftKey ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@at", now.ToString(StampFormat, System.Globalization.CultureInfo.InvariantCulture));
+                cmd.ExecuteNonQuery();
+            }
+        }
+
+        public void ClearScans()
+        {
+            using (var conn = OpenConnection())
+            using (var cmd = conn.CreateCommand())
+            {
+                cmd.CommandText = "DELETE FROM ScannedCodes;";
+                cmd.ExecuteNonQuery();
+            }
+        }
+
+        public void PurgeOldScans(DateTime olderThan)
+        {
+            try
+            {
+                using (var conn = OpenConnection())
+                using (var cmd = conn.CreateCommand())
+                {
+                    cmd.CommandText = "DELETE FROM ScannedCodes WHERE ScannedAt < @t;";
+                    cmd.Parameters.AddWithValue("@t", olderThan.ToString(StampFormat, System.Globalization.CultureInfo.InvariantCulture));
+                    cmd.ExecuteNonQuery();
+                }
+            }
+            catch { }
         }
 
         /// <summary>Resets counts to zero - used by "Reset Result" and by the

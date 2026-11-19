@@ -108,7 +108,7 @@ PHASE 2 - install and test our programs (steps 16-24)   [Build 2 confirmed worki
  21. LAPTOP 1: Double-click TeethSender.exe. The bar goes green and Teeth turns "Laptop 1: Connected".
                Tray icon > Show last keys (test) lists P then Enter. Optional: shortcut in shell:startup (Win+R).
  22. LAPTOP 1: Press the key button. The label prints. On laptop 2 Result IN goes up by 1.
- 23. LAPTOP 2: Scan one item. The label prints. Result OUT goes up by 1. Typing a name changes nothing.
+ 23. LAPTOP 2: Scan one item. The label prints. Result OUT goes up by 1 (green message with the code). Scan the SAME item again: Result OUT does NOT change (red message DUPLICATE + beep). Typing a name changes nothing.
  24. BOTH:     Print one label on each laptop: printing works as before. Then run the 12 acceptance tests
                in docs\Teeth_Two_Laptop_Plan.md.
   Test-Link.bat is run on BOTH laptops: laptop 2 first (step 19), then laptop 1 (step 20).
@@ -138,6 +138,7 @@ USB ADAPTER CAUTIONS
 
 KEYS ON TEETH
   Enter, Space : count nothing (the scanner and the cable do the counting)
+  (Ctrl+Alt+O adds +1 OUT without checking any code, use it only if the scanner is out)
   Ctrl+Alt+I   : +1 IN  (fallback if the cable is out)
   Ctrl+Alt+O   : +1 OUT (fallback if the scanner is out)
   Ctrl+Alt+S   : Change Schedule
@@ -155,10 +156,29 @@ STATUS
   confirmed working by the owner on both laptops (2026-11-08).
   Follow the quick guide and the 12 acceptance tests in docs\Teeth_Two_Laptop_Plan.md.
 
-TEETH-AUTO.bat (Doctor 2): things to know
+UPDATE 2026-11-12 (Doctor 2)
   - Always run TEETH-AUTO.bat from C:\Teeth (another copy of the folder has its own empty database).
   - Laptop 2 keeps a backup of IN/OUT in C:\ProgramData\Teeth and puts it back if the database shows 0 / 0 in the same shift.
   - The time zone is checked (default SE Asia Standard Time, key TimeZone= in App Files\teeth-doctor.ini).
   - "Disconnected" on laptop 1: the tool tries one off/on of the USB adapter; if it stays Disconnected it is the cable or adapter.
   Limits: the counts safety net does not restore when Teeth starts with a brand-new empty database; Reset Result + a Teeth restart inside 5 minutes can bring old counts back.
   Test it: Run-Doctor-SelfTest.bat, then TEETH-CHECK-ONLY.bat, then TEETH-AUTO.bat from C:\Teeth, then tests D10-D15 (docs\Teeth_Two_Laptop_Plan.md).
+
+UPDATE 2026-11-19 - THE SAME QR CODE IS NOT COUNTED TWICE (Result OUT, laptop 2)
+  Problem: scanning one QR code several times counted +1 OUT every time.
+  Now: Teeth reads the serial number (text) of every scan.
+    New serial number          -> Result OUT +1, green message "OUT counted: SERIAL"
+    Same serial scanned again  -> Result OUT does NOT change, red message "DUPLICATE - NOT counted", beep,
+                                  and a line in App Files\Logs\Scan-Rejected.txt (time, code, reason)
+  The counted serial numbers are kept in Teeth.sqlite, so closing Teeth or restarting the laptop does not forget them.
+  Upper/lower case and spaces around the code are ignored.
+  The same serial may count again: in the NEXT SHIFT (default, DuplicateScope=shift) and after Reset Result.
+  Settings in App Files\link.ini (created or kept; restart Teeth after a change):
+    DuplicateCheck=true            false = old behaviour (every scan counts)
+    DuplicateScope=shift           shift | day (until 00:00) | always (kept 60 days at most)
+    ValidCodesFile=                optional: text/CSV file of valid codes, one per line (first column). A code not in the file is refused.
+  Install: close Teeth.exe on LAPTOP 2 only, copy the new Teeth.exe over the old one in C:\Teeth (database and Log Data are kept), start Teeth.
+           LAPTOP 1 and TeethSender.exe need nothing. The old Teeth.exe is in App Files\Backup\Teeth_before_duplicate_fix.exe.
+  Test D16 (laptop 2): scan item A -> OUT +1; scan item A again -> OUT unchanged + red message; scan item B -> OUT +1.
+  Works only if every QR holds its own serial number. Scan a QR in Notepad to see what it contains.
+  Not yet tested on a real Windows laptop with the real scanner (reading the typed characters). If the green message shows a wrong or empty code, send a photo and the QR content.

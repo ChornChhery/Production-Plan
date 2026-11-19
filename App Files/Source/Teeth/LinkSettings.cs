@@ -31,6 +31,19 @@ namespace Teeth
         /// Raise it if a slow scanner is not being counted.</summary>
         public static int ScanMaxGapMs = 50;
 
+        /// <summary>The same QR code is counted as OUT only once.</summary>
+        public static bool DuplicateCheck = true;
+
+        /// <summary>How long a counted QR code is remembered: "shift" (default:
+        /// the same code may count again in the next shift), "day" (until the next
+        /// 00:00) or "always" (never counted again).</summary>
+        public static string DuplicateScope = "shift";
+
+        /// <summary>Optional text/CSV file with the valid QR codes, one per line
+        /// (first column). Empty = no list, every new code is accepted. A relative
+        /// path is relative to the "App Files" folder.</summary>
+        public static string ValidCodesFile = "";
+
         private static string IniPath
         {
             get { return Path.Combine(AppBootstrap.AppFilesDir, "link.ini"); }
@@ -64,6 +77,12 @@ namespace Teeth
                         case "scanenabled": ScanEnabled = !(val == "0" || val.Equals("false", StringComparison.OrdinalIgnoreCase) || val.Equals("no", StringComparison.OrdinalIgnoreCase)); break;
                         case "scanminchars": ScanMinChars = ParseInt(val, ScanMinChars, 2, 50); break;
                         case "scanmaxgapms": ScanMaxGapMs = ParseInt(val, ScanMaxGapMs, 5, 500); break;
+                        case "duplicatecheck": DuplicateCheck = !(val == "0" || val.Equals("false", StringComparison.OrdinalIgnoreCase) || val.Equals("no", StringComparison.OrdinalIgnoreCase)); break;
+                        case "duplicatescope":
+                            string sc = val.ToLowerInvariant();
+                            if (sc == "shift" || sc == "day" || sc == "always") DuplicateScope = sc;
+                            break;
+                        case "validcodesfile": ValidCodesFile = val.Trim('"'); break;
                     }
                 }
             }
@@ -100,7 +119,18 @@ namespace Teeth
                 "# is counted by mistake, lower it or raise ScanMinChars.",
                 "ScanEnabled=true",
                 "ScanMinChars=" + ScanMinChars.ToString(CultureInfo.InvariantCulture),
-                "ScanMaxGapMs=" + ScanMaxGapMs.ToString(CultureInfo.InvariantCulture)
+                "ScanMaxGapMs=" + ScanMaxGapMs.ToString(CultureInfo.InvariantCulture),
+                "",
+                "# Same QR scanned again = NOT counted again (red message on screen).",
+                "# DuplicateScope: shift = may count again next shift, day = once per day,",
+                "# always = never counted again.",
+                "DuplicateCheck=true",
+                "DuplicateScope=shift",
+                "",
+                "# Optional: text/CSV file of valid QR codes (one per line, first column),",
+                "# e.g. exported by the software that keeps the codes. A code not in the",
+                "# file is refused. Leave empty to accept every new code.",
+                "ValidCodesFile="
             };
             File.WriteAllLines(IniPath, lines);
         }

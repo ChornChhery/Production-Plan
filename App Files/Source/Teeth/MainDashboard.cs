@@ -57,6 +57,9 @@ namespace Teeth
         private Button _btnReset;
         private Button _btnChangeSchedule;
         private Label _lblLink;
+        private Label _lblScan;               // result of the last QR scan (counted / duplicate / unknown)
+        private DateTime _scanMsgUntil = DateTime.MinValue;
+        private ScanGuard _scanGuard;
 
         // Two-laptop link: IN comes from laptop 1 over the cable, OUT from the
         // scanner on this laptop.
@@ -244,6 +247,17 @@ namespace Teeth
             };
             _topPanel.Controls.Add(_lblLink);
 
+            // Last QR scan: green when counted, red when refused (duplicate / unknown).
+            _lblScan = new Label
+            {
+                AutoSize = true,
+                Font = new Font("Arial", 16, FontStyle.Bold),
+                BackColor = _bgColor,
+                ForeColor = ColorGray,
+                Text = ""
+            };
+            _topPanel.Controls.Add(_lblScan);
+
             // Line's width and Shift's width both change whenever their
             // text changes (AutoSize), so a plain Anchor isn't enough -
             // recompute positions on every resize AND whenever the text
@@ -263,6 +277,7 @@ namespace Teeth
             _lblLine.Location = new Point((_topPanel.Width - _lblLine.Width) / 2, 10);
             _lblShift.Location = new Point(_topPanel.Width - _lblShift.Width - 20, 10);
             _lblLink.Location = new Point((_topPanel.Width - _lblLink.Width) / 2, 86);
+            _lblScan.Location = new Point((_topPanel.Width - _lblScan.Width) / 2, 118);
             // Reset Result on top, Change Schedule directly underneath it,
             // both right-aligned under the Shift label (panel is 150px tall).
             _btnReset.Location = new Point(_topPanel.Width - _btnReset.Width - 20, 68);
@@ -441,6 +456,8 @@ namespace Teeth
             // barcode scanner (+1 OUT). Both are optional extras: if either
             // cannot start, the dashboard still runs and says so on screen.
             LinkSettings.Load();
+
+            _scanGuard = new ScanGuard(_db);
 
             _link = new LinkServer(LinkSettings.Port);
             _link.InReceived += OnLinkIn;
@@ -627,10 +644,75 @@ namespace Teeth
 
         /// <summary>The scanner typed a code + Enter (inside the keyboard hook,
         /// so hand the work to the UI loop and return at once).</summary>
-        private void OnScan()
+        private void OnScan(string rawCode)
         {
-            try { BeginInvoke(new Action(IncrementCountOut)); }
+            try { BeginInvoke(new Action(() => HandleScan(rawCode))); }
             catch (InvalidOperationException) { /* window is closing */ }
+        }
+
+        /// <summary>One scan arrived (UI thread): count it only if this QR code
+        /// has not been counted before (and is valid, when a list is used).</summary>
+        private void HandleScan(string rawCode)
+        {
+            DateTime now = DateTime.Now;
+            string shiftKey = _currentShiftKey ?? ShiftKeys.ForTime(now);
+
+            ScanResult r;
+            try
+            {
+                r = _scanGuard.Check(rawCode, shiftKey, now);
+            }
+            catch (Exception ex)
+            {
+                // Never lose a count because the check itself failed.
+                System.Diagnostics.Debug.WriteLine("Scan check failed: " + ex);
+                r = new ScanResult { Verdict = ScanVerdict.Unreadable, Code = "" };
+            }
+
+            switch (r.Verdict)
+            {
+                case ScanVerdict.Accept:
+                    IncrementCountOut();
+                    try { _scanGuard.Remember(r.Code, shiftKey, now); } catch { }
+                    // Save right away so the count and its code cannot get out of step.
+                    if (!_settingsOpen)
+                    {
+                        try
+                        {
+                            _db.SaveLiveCounts(_liveCounts);
+                            _lastSavedOut = _liveCounts.CountOut;
+                        }
+                        catch { }
+                    }
+                    ShowScanMessage("OUT counted: " + r.Code, "#0a7a2f", 4);
+                    break;
+
+                case ScanVerdict.Unreadable:
+                    IncrementCountOut();
+                    ShowScanMessage("OUT counted (code not readable)", "#b7791f", 4);
+                    break;
+
+                case ScanVerdict.Duplicate:
+                    ScanGuard.LogRejected(r, now);
+                    System.Media.SystemSounds.Hand.Play();
+                    ShowScanMessage("DUPLICATE - NOT counted: " + r.Code +
+                        " (already counted " + r.FirstScanAt.ToString("HH:mm:ss") + ")", "#c53030", 15);
+                    break;
+
+                default: // Unknown
+                    ScanGuard.LogRejected(r, now);
+                    System.Media.SystemSounds.Hand.Play();
+                    ShowScanMessage("UNKNOWN code - NOT counted: " + r.Code, "#c53030", 15);
+                    break;
+            }
+        }
+
+        private void ShowScanMessage(string text, string colorHex, int seconds)
+        {
+            _lblScan.Text = text;
+            _lblScan.ForeColor = ColorTranslator.FromHtml(colorHex);
+            _scanMsgUntil = DateTime.Now.AddSeconds(seconds);
+            PositionTopLabels();
         }
 
         private void UpdateLinkStatus()
@@ -687,6 +769,7 @@ namespace Teeth
 
             _db.SaveLiveCounts(_liveCounts);
             SetLastLogged(null, null);
+            try { _scanGuard.ForgetAll(); } catch { }
             _lastSavedIn = 0;
             _lastSavedOut = 0;
             _lastSavedFrozen = 0.0;
@@ -720,6 +803,7 @@ namespace Teeth
             _currentShiftKey = shiftKey;
             _lblShift.Text = $"Shift: {shiftMode}";
             UpdateLinkStatus();
+            if (_lblScan.Text.Length > 0 && now > _scanMsgUntil) _lblScan.Text = "";
             PositionTopLabels();
 
             DateTime shiftStart = ShiftCalculator.GetShiftStart(now);

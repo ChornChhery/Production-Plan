@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "d:\\Teeth\\App Files\\Source_Sender\\TeethSender\\TeethSender.csproj": {}
+    "D:\\Teeth\\App Files\\Source_Sender\\TeethSender\\TeethSender.csproj": {}
   },
   "projects": {
-    "d:\\Teeth\\App Files\\Source_Sender\\TeethSender\\TeethSender.csproj": {
+    "D:\\Teeth\\App Files\\Source_Sender\\TeethSender\\TeethSender.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "d:\\Teeth\\App Files\\Source_Sender\\TeethSender\\TeethSender.csproj",
+        "projectUniqueName": "D:\\Teeth\\App Files\\Source_Sender\\TeethSender\\TeethSender.csproj",
         "projectName": "TeethSender",
-        "projectPath": "d:\\Teeth\\App Files\\Source_Sender\\TeethSender\\TeethSender.csproj",
+        "projectPath": "D:\\Teeth\\App Files\\Source_Sender\\TeethSender\\TeethSender.csproj",
         "packagesPath": "C:\\Users\\Dell\\.nuget\\packages\\",
-        "outputPath": "d:\\Teeth\\App Files\\Source_Sender\\TeethSender\\obj\\",
+        "outputPath": "D:\\Teeth\\App Files\\Source_Sender\\TeethSender\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"

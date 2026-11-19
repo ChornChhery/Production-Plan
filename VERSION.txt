@@ -1,4 +1,16 @@
-TEETH package version
+TEETH package version  (latest: Package 5, 2026-11-19)
+
+Package 5 - 2026-11-19  (Teeth.exe CHANGED: the same QR code scanned again is NOT counted again in Result OUT; TeethSender.exe and the Doctor unchanged)
+  Problem reported: on laptop 2 one QR code scanned several times was counted every time (Teeth only detected "fast keys + Enter", it never read the code).
+  Fix: Teeth now reads the text (serial number) of every scan. New code = +1 OUT (green message). Same code again = NOT counted, red message, beep, line in App Files\Logs\Scan-Rejected.txt.
+  Counted codes are kept in Teeth.sqlite (table ScannedCodes), so they survive closing Teeth and restarting the laptop. Reset Result forgets them. Codes older than 60 days are removed.
+  New link.ini keys (optional, defaults work): DuplicateCheck=true, DuplicateScope=shift|day|always (default shift), ValidCodesFile= (optional list of valid codes, text/CSV, first column).
+  New files: Source\Teeth\ScanGuard.cs; changed: ScanDetector.cs, LinkSettings.cs, DatabaseManager.cs, MainDashboard.cs. The old Teeth.exe is kept in App Files\Backup\Teeth_before_duplicate_fix.exe.
+  Tests: 17 automatic checks pass (App Files\Source_Build\scan-tests, run with run-tests.sh, Mono + SQLite on Linux): duplicate, different code, upper/lower case and spaces, after restart, shift/day/always scope, valid list, missing list, Reset.
+  Teeth.exe was compiled against the real .NET Framework 4.8 reference assemblies (build-with-mono.sh, no errors).
+  NOT yet tested on a real Windows laptop with the real scanner: reading the typed characters (ToUnicodeEx in ScanDetector.cs). Test D16 in docs\Teeth_Two_Laptop_Plan.md.
+  Install: close Teeth.exe on LAPTOP 2 only, copy the new Teeth.exe over the old one in C:\Teeth (database and Log Data are kept), start it (or wait for the Doctor). Laptop 1 needs nothing.
+  Documents 2026-11-19: README, SETUP-TWO-LAPTOPS, plan, AI_CONTEXT and the 4 PDFs + the Full Reference Guide have an added last page/section "UPDATE 2026-11-19 - duplicate QR".
 
 Package 4 - 2026-11-12  (Doctor 2: .NET 4.8 auto-install, time zone check, adapter off/on, counts safety net; Teeth.exe and TeethSender.exe unchanged)
   Tests: 35 static + 42 logic + 36 scenario = 113 passed in the simulator (App Files\Source_Build\doctor-tests\RESULT-2026-11-12.txt). NOT yet run on a real Windows laptop: run Run-Doctor-SelfTest.bat, then the tests D10-D15 in docs\Teeth_Two_Laptop_Plan.md.
@@ -27,4 +39,4 @@ If you see that error, your Teeth.exe is build 1: copy Teeth.exe and TeethSender
 
 Doctor 2 (2026-11-12): TEETH-AUTO.bat now installs .NET Framework 4.8 by itself when it is missing (asks once), tries one adapter off/on when the USB adapter says Disconnected, and checks/fixes the time zone (keeps the clock time). Tests: 35 static, 32 logic, 32 scenario checks pass (on PowerShell 7 in a simulator; not yet on a real Windows laptop).
 Doctor 2 also: counts safety net on Laptop 2 (backup of IN/OUT outside the Teeth folder, restore when the database is 0/0 in the same shift, before Teeth starts). 35 static, 42 logic, 36 scenario checks pass in a simulator.
-Documents of this version: the 4 PDFs were rebuilt (front chapters describe the current TEETH-AUTO.bat; the Quick Visual Guide has a one-click chapter with a workflow flowchart and a troubleshooting flowchart); plan, AI_CONTEXT, README, SETUP-TWO-LAPTOPS and SENDER-HOW-TO match.
+Documents 2026-11-12: the 4 PDFs have an added last page "UPDATE 2026-11-12 - Doctor 2"; plan, AI_CONTEXT, README, SETUP-TWO-LAPTOPS and SENDER-HOW-TO updated.

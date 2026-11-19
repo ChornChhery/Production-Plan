@@ -208,6 +208,9 @@ Run these with both laptops working.
 | | `ScanEnabled` | `true` | Count scans as OUT |
 | | `ScanMinChars` | `4` | Minimum characters before Enter to count as a scan |
 | | `ScanMaxGapMs` | `50` | Maximum ms between keys of a scan |
+| | `DuplicateCheck` | `true` | The same QR code is counted as OUT only once |
+| | `DuplicateScope` | `shift` | `shift`, `day` or `always`: how long a counted code is remembered |
+| | `ValidCodesFile` | (empty) | Optional text/CSV list of valid codes (one per line); other codes are refused |
 | `sender.ini` (next to `TeethSender.exe`) | `Host` | `192.168.50.2` | IP of laptop 2 |
 | | `Port` | `5055` | Must match Teeth's `Port` |
 | | `KeyWindowMs` | `500` | Enter must follow P within this time |
@@ -286,7 +289,7 @@ Teeth_Project_2Laptops_FINAL.zip
   docs/                             Teeth_Full_Reference_Guide.pdf (17 pages), AI_CONTEXT.md, this plan, images/
 ```
 
-## TEETH-AUTO.bat (Doctor 2): .NET install, time zone, adapter reset, counts safety net
+## Update 2026-11-12 - Doctor 2 (newer than the text above)
 
 Changes to `App Files\Tools\Teeth-Doctor.ps1` (run by TEETH-AUTO.bat and by the scheduled task every 5 minutes). Tested only in the simulator (35 static, 42 logic, 36 scenario checks), NOT yet on a real Windows laptop.
 
@@ -301,6 +304,20 @@ The number on laptop 1 ("IN sent since start: N") is a running total since Teeth
 
 Always run TEETH-AUTO.bat from `C:\Teeth`; another copy of the folder has its own empty `Teeth.sqlite`.
 
-Limits of the counts safety net (also in the PDF guides): (1) Reset Result followed by a Teeth restart inside the 5-minute window can bring the old counts back. (2) If Teeth starts with a brand-new empty database (for example from another folder), the counts are NOT restored; the last numbers are in `counts-history.txt` and can be entered with Settings > Admin > correction. `TEETH-UNDO.bat` does not undo the .NET install, the time zone change or `C:\ProgramData\Teeth`.
+Limits of the counts safety net (also in the PDF update pages): (1) Reset Result followed by a Teeth restart inside the 5-minute window can bring the old counts back. (2) If Teeth starts with a brand-new empty database (for example from another folder), the counts are NOT restored; the last numbers are in `counts-history.txt` and can be entered with Settings > Admin > correction. `TEETH-UNDO.bat` does not undo the .NET install, the time zone change or `C:\ProgramData\Teeth`.
 
 How to run and test Doctor 2: replace `App Files\Tools\Teeth-Doctor.ps1` on both laptops (or unzip the new project zip into `C:\Teeth`, keeping `Teeth.sqlite`, `Log Data`, `link.ini`, `sender.ini`, `pending.txt`); run `App Files\Tools\Run-Doctor-SelfTest.bat` (must end with ALL CHECKS PASSED: static 35 + logic 42); `TEETH-CHECK-ONLY.bat`; then `TEETH-AUTO.bat` from `C:\Teeth`; then tests D1-D15 (D10-D15 are new). Developer tests here: `App Files\Source_Build\doctor-tests` (`Test-Doctor-Static.ps1`, `Test-Doctor-Logic.ps1`, `Test-Doctor-Scenarios.ps1` + `Simulate-Doctor.ps1`; result file `RESULT-2026-11-12.txt`: 35 + 42 + 36 = 113 checks passed).
+
+## UPDATE 2026-11-19 - the same QR code is not counted twice (Package 5)
+Problem: scanning one QR code several times counted +1 OUT every time on laptop 2.
+Now: Teeth reads the serial number of every scan. New serial = +1 OUT (green message). Same serial again = no count, red message "DUPLICATE - NOT counted", beep, line in `App Files\Logs\Scan-Rejected.txt`. Counted serials are stored in `Teeth.sqlite` (survive a restart); Reset Result forgets them; by default the same serial may count again in the next shift (`DuplicateScope`). Upper/lower case and spaces are ignored.
+Install: close Teeth.exe on laptop 2, copy the new Teeth.exe over the old one in C:\Teeth (database and Log Data kept). Laptop 1 unchanged.
+
+| No. | Test (laptop 2) | Expected |
+|---|---|---|
+| D16 | Scan item A, then scan item A again, then item B | OUT +1, then unchanged with a red DUPLICATE message and a beep, then +1 |
+| D17 | Scan item A, close Teeth, start it, scan item A again | Still a duplicate (not counted) |
+| D18 | Scan item A, press Reset Result, scan item A | Counted again (+1) |
+| D19 | Scan a QR in Notepad | The serial typed is the same as the one in the green message (case ignored) |
+
+Not yet tested on a real Windows laptop with the real scanner (reading the typed characters). Works only if every QR holds its own serial number.

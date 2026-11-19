@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Text;
 using System.Threading;
 
 namespace Teeth
@@ -82,6 +83,17 @@ namespace Teeth
 
         private const uint WM_QUIT = 0x0012;
 
+        [DllImport("user32.dll")]
+        private static extern IntPtr GetKeyboardLayout(uint idThread);
+
+        [DllImport("user32.dll")]
+        private static extern short GetKeyState(int nVirtKey);
+
+        [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+        private static extern int ToUnicodeEx(uint wVirtKey, uint wScanCode, byte[] lpKeyState,
+            [Out, MarshalAs(UnmanagedType.LPWStr, SizeConst = 8)] StringBuilder pwszBuff,
+            int cchBuff, uint wFlags, IntPtr dwhkl);
+
         private readonly int _minChars;
         private readonly int _maxGapMs;
         private readonly HookProc _proc;      // kept in a field so the GC cannot free it
@@ -94,8 +106,11 @@ namespace Teeth
 
         private int _burst;
         private long _lastKeyMs = -100000;
+        private readonly StringBuilder _text = new StringBuilder();   // the characters of the current burst
 
-        public event Action ScanDetected;
+        /// <summary>Raised with the text the scanner typed (the QR / barcode content,
+        /// "" if it could not be read).</summary>
+        public event Action<string> ScanDetected;
 
         /// <summary>false if Windows refused the hook (then OUT can only be
         /// counted with the Ctrl+Alt+O fallback).</summary>
@@ -174,7 +189,7 @@ namespace Teeth
                         // Already down = keyboard auto-repeat: ignore.
                         if (_down.Add(data.vkCode))
                         {
-                            OnKeyDown(data.vkCode);
+                            OnKeyDown(data.vkCode, data.scanCode);
                         }
                     }
                 }
@@ -187,7 +202,34 @@ namespace Teeth
             return CallNextHookEx(_hook, nCode, wParam, lParam);
         }
 
-        private void OnKeyDown(uint vk)
+        /// <summary>The character this key produces right now (Shift / Caps Lock
+        /// respected), or "" for keys that type nothing.</summary>
+        private string CharFor(uint vk, uint scanCode)
+        {
+            try
+            {
+                var state = new byte[256];
+                bool shift = _down.Contains(0x10) || _down.Contains(0xA0) || _down.Contains(0xA1);
+                bool ctrl = _down.Contains(0x11) || _down.Contains(0xA2) || _down.Contains(0xA3);
+                bool alt = _down.Contains(0x12) || _down.Contains(0xA4) || _down.Contains(0xA5);
+                if (shift) state[0x10] = 0x80;
+                if (ctrl) state[0x11] = 0x80;
+                if (alt) state[0x12] = 0x80;
+                if ((GetKeyState(0x14) & 1) != 0) state[0x14] = 0x01;
+
+                var sb = new StringBuilder(8);
+                // flag 4 = do not change the keyboard state (dead keys stay untouched)
+                int n = ToUnicodeEx(vk, scanCode, state, sb, sb.Capacity, 4, GetKeyboardLayout(0));
+                if (n > 0) return sb.ToString(0, 1);
+            }
+            catch
+            {
+                // Could not translate: the burst still counts as a scan, just without text.
+            }
+            return "";
+        }
+
+        private void OnKeyDown(uint vk, uint scanCode)
         {
             if (IsModifier(vk)) return;
 
@@ -197,13 +239,15 @@ namespace Teeth
             if (vk == VK_RETURN)
             {
                 bool isScan = _burst >= _minChars && gap <= _maxGapMs;
+                string text = _text.ToString();
                 _burst = 0;
+                _text.Length = 0;
                 _lastKeyMs = now;
 
                 if (isScan)
                 {
                     var handler = ScanDetected;
-                    if (handler != null) handler();
+                    if (handler != null) handler(text);
                 }
                 return;
             }
@@ -211,8 +255,10 @@ namespace Teeth
             if (_burst > 0 && gap > _maxGapMs)
             {
                 _burst = 0;
+                _text.Length = 0;
             }
             _burst++;
+            _text.Append(CharFor(vk, scanCode));
             _lastKeyMs = now;
         }
 

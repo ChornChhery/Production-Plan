@@ -445,3 +445,11 @@ shop floor.
 
 ### Version 2 note: network port
 The Teeth link runs on a USB-to-Ethernet adapter on each laptop (192.168.50.1 / 192.168.50.2, no gateway), not on the built-in Ethernet port, which stays on the print network. Teeth listens on all adapters (`IPAddress.Any`), the Sender connects to `Host` in `sender.ini`, and the firewall rule is port-based (TCP 5055, all profiles, only from 192.168.50.0/24), so no code change is needed. If 192.168.50.x clashes with the print network, use another range and update `Host`, the Windows IPs and `HOST` in `Test-Link.bat`.
+
+## Change: same QR scanned again is NOT counted again (Result OUT)
+Teeth now reads the text of each scanned QR code (ScanDetector -> ScanGuard). A code already counted is refused with a red message on screen,
+a beep, and a line in `App Files\Logs\Scan-Rejected.txt`. Counted codes are kept in Teeth.sqlite (table ScannedCodes), so closing Teeth does not forget them;
+Reset Result forgets them. New keys in `App Files\link.ini`: DuplicateCheck (true), DuplicateScope (shift | day | always), ValidCodesFile (optional list of valid codes).
+Codes are compared ignoring upper/lower case and spaces around them. Codes are remembered for 60 days at most.
+Install: close Teeth.exe on laptop 2, copy the new Teeth.exe over the old one (database and Log Data are kept). Laptop 1 needs nothing. Old exe: `App Files\Backup\Teeth_before_duplicate_fix.exe`.
+Tests: `App Files\Source_Build\scan-tests\run-tests.sh` (17 checks). Not yet tested on a real Windows laptop with the real scanner: see test D16-D19 in `docs\Teeth_Two_Laptop_Plan.md`.
