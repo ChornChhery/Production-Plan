@@ -43,7 +43,7 @@ namespace Teeth
         private static readonly string[] DayHours = Enumerable.Range(8, 13).Select(h => h.ToString("00")).ToArray();
         private static readonly string[] NightHours = Enumerable.Range(20, 4).Select(h => h.ToString("00"))
             .Concat(Enumerable.Range(0, 9).Select(h => h.ToString("00"))).ToArray();
-        private static readonly string[] MinuteSteps = Enumerable.Range(0, 12).Select(i => (i * 5).ToString("00")).ToArray();
+        private static readonly string[] MinuteSteps = new[] { "" }.Concat(Enumerable.Range(0, 12).Select(i => (i * 5).ToString("00"))).ToArray();
 
         private static readonly Color ColorBg = ColorTranslator.FromHtml("#f7fafc");
         private static readonly Color ColorNavy = ColorTranslator.FromHtml("#1a365d");
@@ -88,6 +88,7 @@ namespace Teeth
         private Button _btnAdmin;
         private Button _btnAddBlock;
         private Button _btnRemoveBlock;
+        private Button _btnCloseBlock;
 
         private int _colName, _colStartHour, _colStartMin,
                     _colEndHour, _colEndMin, _colTargetIn, _colTargetOut, _colTact;
@@ -203,6 +204,21 @@ namespace Teeth
         private Panel BuildToolbar()
         {
             var bar = new Panel { Dock = DockStyle.Top, Height = 36, BackColor = ColorBg };
+
+            _btnCloseBlock = new Button
+            {
+                Text = "Close selected work",
+                Size = new Size(170, 26),
+                Location = new Point(FormWidth - 40 - 300 - 300 - 180, 2),
+                Anchor = AnchorStyles.Top | AnchorStyles.Right,
+                FlatStyle = FlatStyle.Flat,
+                BackColor = ColorTactBg,
+                ForeColor = ColorGray,
+                Font = new Font("Arial", 8.5f, FontStyle.Bold)
+            };
+            _btnCloseBlock.FlatAppearance.BorderColor = ColorTranslator.FromHtml("#cbd5e0");
+            _btnCloseBlock.Click += BtnCloseBlock_Click;
+            bar.Controls.Add(_btnCloseBlock);
 
             _btnRemoveBlock = new Button
             {
@@ -359,6 +375,7 @@ namespace Teeth
             grid.Columns[_colTact].DefaultCellStyle.BackColor = ColorTactBg;
             grid.Columns[_colTact].DefaultCellStyle.ForeColor = ColorGray;
             grid.Columns[_colTact].HeaderCell.Style.ForeColor = ColorTranslator.FromHtml("#e2e8f0");
+            grid.DataError += (s, e) => { e.ThrowException = false; };
             grid.CellEndEdit += Grid_CellEndEdit;
             grid.CurrentCellDirtyStateChanged += (s, e) =>
             {
@@ -653,10 +670,15 @@ namespace Teeth
             return list;
         }
 
-        private static string[] HoursFor(string profile) => profile == "Night Schedule" ? NightHours : DayHours;
-        private const int ShiftLengthMinutes = 12 * 60;
-
-        private static int ShiftStartMinuteOfDay(string profile) => profile == "Night Schedule" ? 20 * 60 : 8 * 60;
+        // First entry is "" = blank, so a Start/End can be cleared (closes the work).
+        private static string[] HoursFor(string profile) => new[] { "" }.Concat(profile == "Night Schedule" ? NightHours : DayHours).ToArray();
+        
+        private string EnsureMinuteItem(int col, string mm)
+        {
+            var c = (DataGridViewComboBoxColumn)_grid.Columns[col];
+            if (!c.Items.Contains(mm)) c.Items.Add(mm);
+            return mm;
+        }
 
         private static bool TrySplit(string hhmm, out string hh, out string mm)
         {
@@ -704,12 +726,12 @@ namespace Teeth
                 if (TrySplit(block.StartTime, out string sh, out string sm))
                 {
                     row.Cells[_colStartHour].Value = hours.Contains(sh) ? sh : null;
-                    row.Cells[_colStartMin].Value = sm;
+                    row.Cells[_colStartMin].Value = EnsureMinuteItem(_colStartMin, sm);
                 }
                 if (TrySplit(block.EndTime, out string eh, out string em))
                 {
                     row.Cells[_colEndHour].Value = hours.Contains(eh) ? eh : null;
-                    row.Cells[_colEndMin].Value = em;
+                    row.Cells[_colEndMin].Value = EnsureMinuteItem(_colEndMin, em);
                 }
 
                 row.Cells[_colTargetIn].Value = block.TargetIn.ToString();
@@ -731,7 +753,7 @@ namespace Teeth
         {
             int rowIndex = _grid.Rows.Add();
             var row = _grid.Rows[rowIndex];
-            row.Cells[_colName].Value = $"Work {_grid.Rows.Count}";
+            row.Cells[_colName].Value = NextWorkName();
             row.Cells[_colTargetIn].Value = "0";
             row.Cells[_colTargetOut].Value = "0";
             row.Tag = false;
@@ -740,6 +762,17 @@ namespace Teeth
             _grid.ClearSelection();
             row.Selected = true;
             _grid.FirstDisplayedScrollingRowIndex = rowIndex;
+        }
+
+        /// <summary>"Work N" with the smallest N not used by any row yet.</summary>
+        private string NextWorkName()
+        {
+            var used = new HashSet<string>();
+            foreach (DataGridViewRow r in _grid.Rows)
+                used.Add(Convert.ToString(r.Cells[_colName].Value));
+            int n = 1;
+            while (used.Contains($"Work {n}")) n++;
+            return $"Work {n}";
         }
 
         private void BtnRemoveBlock_Click(object sender, EventArgs e)
@@ -755,8 +788,37 @@ namespace Teeth
                 _lblErrors.Text = "Select a block row first, then Remove selected.";
                 return;
             }
+            _lblErrors.Text = "";
+            _grid.EndEdit();
+            _grid.CurrentCell = null;
             _grid.Rows.Remove(current);
             RecalcPlanTotals();
+        }
+
+        /// <summary>Closes the selected work without deleting the row:
+        /// clears Start/End and sets both targets to 0. The row stays in the
+        /// list (grey) so it can be re-opened later by picking times again.</summary>
+        private void BtnCloseBlock_Click(object sender, EventArgs e)
+        {
+            var current = _grid.CurrentRow ?? (_grid.SelectedRows.Count > 0 ? _grid.SelectedRows[0] : null);
+            if (current == null)
+            {
+                _lblErrors.Text = "Click a work row first, then Close selected work.";
+                return;
+            }
+            _lblErrors.Text = "";
+            _grid.EndEdit();
+            _suspendRecalc = true;
+            current.Cells[_colStartHour].Value = "";
+            current.Cells[_colStartMin].Value = "";
+            current.Cells[_colEndHour].Value = "";
+            current.Cells[_colEndMin].Value = "";
+            current.Cells[_colTargetIn].Value = "0";
+            current.Cells[_colTargetOut].Value = "0";
+            _suspendRecalc = false;
+            RecomputeTact(current.Index);
+            RecalcPlanTotals();
+            _grid.InvalidateRow(current.Index);
         }
 
         private void SyncGridIntoList(string profile)
@@ -827,11 +889,36 @@ namespace Teeth
             bool isTimeCol = e.ColumnIndex == _colStartHour || e.ColumnIndex == _colStartMin ||
                               e.ColumnIndex == _colEndHour || e.ColumnIndex == _colEndMin;
 
+            AutoFillMinute(e.RowIndex, e.ColumnIndex);
+
             if (isTimeCol) RecomputeTact(e.RowIndex);
             if (isTimeCol || e.ColumnIndex == _colTargetIn || e.ColumnIndex == _colTargetOut)
             {
                 RecalcPlanTotals();
             }
+        }
+
+        /// <summary>Picking an hour with no minute used to leave the time
+        /// "half set", which Save read as no time at all. Now the minute
+        /// becomes 00 automatically, and clearing the hour clears the minute.</summary>
+        private void AutoFillMinute(int rowIndex, int colIndex)
+        {
+            int minCol;
+            if (colIndex == _colStartHour) minCol = _colStartMin;
+            else if (colIndex == _colEndHour) minCol = _colEndMin;
+            else return;
+
+            var row = _grid.Rows[rowIndex];
+            string h = Convert.ToString(row.Cells[colIndex].Value);
+            string m = Convert.ToString(row.Cells[minCol].Value);
+
+            _suspendRecalc = true;
+            try
+            {
+                if (string.IsNullOrEmpty(h)) { if (!string.IsNullOrEmpty(m)) row.Cells[minCol].Value = ""; }
+                else if (string.IsNullOrEmpty(m)) row.Cells[minCol].Value = "00";
+            }
+            finally { _suspendRecalc = false; }
         }
 
         private static string RowStart(DataGridViewRow row, int colHour, int colMin)
@@ -863,7 +950,7 @@ namespace Teeth
             {
                 string start = RowStart(row, _colStartHour, _colStartMin);
                 string end = RowStart(row, _colEndHour, _colEndMin);
-                if (string.IsNullOrEmpty(start) || start == end) continue;
+                if (string.IsNullOrEmpty(start) || string.IsNullOrEmpty(end) || start == end) continue;
 
                 int.TryParse(Convert.ToString(row.Cells[_colTargetIn].Value), out int tIn);
                 int.TryParse(Convert.ToString(row.Cells[_colTargetOut].Value), out int tOut);
@@ -880,25 +967,48 @@ namespace Teeth
         // ------------------------------------------------------------------
         private void BtnSave_Click(object sender, EventArgs e)
         {
+            // Commit a cell that is still being typed in / a dropdown still open.
+            _grid.EndEdit();
             SyncGridIntoList(_currentProfile);
 
-            var errors = new List<string>();
-            ValidateBlocks("Day Schedule", _dayBlocks, errors);
-            ValidateBlocks("Night Schedule", _nightBlocks, errors);
+            var errors = new List<ScheduleError>();
+            errors.AddRange(ScheduleValidator.Validate("Day Schedule", _dayBlocks));
+            errors.AddRange(ScheduleValidator.Validate("Night Schedule", _nightBlocks));
 
-            if (_cmbLine.SelectedItem == null)
-            {
-                errors.Add("Choose a production line.");
-            }
+            string lineError = _cmbLine.SelectedItem == null ? "Choose a production line." : null;
 
-            if (errors.Count > 0)
+            if (errors.Count > 0 || lineError != null)
             {
-                _lblErrors.Text = string.Join("  |  ", errors.Take(3))
-                    + (errors.Count > 3 ? $"  (+{errors.Count - 3} more)" : "");
+                var lines = errors.Select(x => x.ToString()).ToList();
+                if (lineError != null) lines.Add(lineError);
+
+                _lblErrors.Text = lines[0] + (lines.Count > 1 ? $"  (+{lines.Count - 1} more)" : "");
+
+                MessageBox.Show(this,
+                    "Cannot save yet:" + Environment.NewLine + Environment.NewLine +
+                    string.Join(Environment.NewLine, lines.Take(10)) +
+                    (lines.Count > 10 ? Environment.NewLine + $"... and {lines.Count - 10} more" : ""),
+                    "Schedule not saved", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+
+                if (errors.Count > 0)
+                {
+                    var first = errors[0];
+                    if (first.Profile != _currentProfile) SetProfile(first.Profile);
+                    if (first.RowIndex >= 0 && first.RowIndex < _grid.Rows.Count)
+                    {
+                        _grid.ClearSelection();
+                        _grid.Rows[first.RowIndex].Selected = true;
+                        _grid.FirstDisplayedScrollingRowIndex = first.RowIndex;
+                    }
+                }
                 return;
             }
 
             _lblErrors.Text = "";
+
+            // Open works sorted by time, closed works last, closed carry no targets.
+            _dayBlocks = ScheduleValidator.Normalize("Day Schedule", _dayBlocks);
+            _nightBlocks = ScheduleValidator.Normalize("Night Schedule", _nightBlocks);
 
             _db.SaveWorkBlocks("Day Schedule", _dayBlocks);
             _db.SaveWorkBlocks("Night Schedule", _nightBlocks);
@@ -909,85 +1019,6 @@ namespace Teeth
 
             DialogResult = DialogResult.OK;
             Close();
-        }
-
-        /// <summary>
-        /// Gaps are fine (they're breaks). Only a genuine OVERLAP - the
-        /// next block starting before the previous one has finished - is
-        /// flagged, since that would double-count time in
-        /// TargetCalculator. Ordering is compared using each block's
-        /// offset from the shift's own start-of-day time, the same
-        /// reference point TargetCalculator itself uses.
-        /// </summary>
-        private static void ValidateBlocks(string profile, List<WorkBlockModel> blocks, List<string> errors)
-        {
-            int shiftStartMod = ShiftStartMinuteOfDay(profile);
-            int previousEndOffset = -1;
-
-            for (int i = 0; i < blocks.Count; i++)
-            {
-                var b = blocks[i];
-                string rowLabel = $"{profile} row {i + 1}";
-                bool isBlank = string.IsNullOrEmpty(b.StartTime) && string.IsNullOrEmpty(b.EndTime);
-
-                if (isBlank)
-                {
-                    continue; // an unused placeholder row - not an error, just not counted
-                }
-
-                if (string.IsNullOrWhiteSpace(b.Name))
-                {
-                    errors.Add($"{rowLabel}: name is required.");
-                }
-
-                if (b.StartTime == b.EndTime)
-                {
-                    // BlockDurationMinutes treats End <= Start as "wraps to
-                    // the next day," so a Start == End row would otherwise
-                    // silently compute as a full 24-hour block instead of
-                    // the "not actually configured" row it really is - the
-                    // live Tact/Plan preview (RecalcPlanTotals) already
-                    // skips this case, so Save must reject it the same way
-                    // rather than persisting a block that would badly
-                    // distort TargetCalculator on the live dashboard.
-                    errors.Add($"{rowLabel}: Start and End time cannot be the same.");
-                    continue;
-                }
-
-                int minutes = TargetCalculator.BlockDurationMinutes(b.StartTime, b.EndTime);
-                if (minutes <= 0)
-                {
-                    errors.Add($"{rowLabel}: pick a valid Start/End time.");
-                    continue;
-                }
-
-                if (b.TargetIn < 0 || b.TargetOut < 0)
-                {
-                    errors.Add($"{rowLabel}: targets cannot be negative.");
-                }
-
-                int startOffset = TargetCalculator.MinutesFromShiftStart(b.StartTime, shiftStartMod);
-                int endOffset = startOffset + minutes;
-
-                // A block must sit fully inside its own 12-hour shift. One that
-                // starts or runs outside it would add to Plan but Target could
-                // never reach it (Day = 08:00-20:00, Night = 20:00-08:00).
-                if (endOffset > ShiftLengthMinutes)
-                {
-                    string from = $"{shiftStartMod / 60:00}:{shiftStartMod % 60:00}";
-                    int endMod = (shiftStartMod + ShiftLengthMinutes) % (24 * 60);
-                    string to = $"{endMod / 60:00}:{endMod % 60:00}";
-                    errors.Add($"{rowLabel}: {b.StartTime}-{b.EndTime} is outside the shift ({from}-{to}).");
-                    continue;
-                }
-
-                if (previousEndOffset >= 0 && startOffset < previousEndOffset)
-                {
-                    errors.Add($"{rowLabel}: overlaps the previous block (starts before it ends).");
-                }
-
-                previousEndOffset = endOffset;
-            }
         }
     }
 }

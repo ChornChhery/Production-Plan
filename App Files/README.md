@@ -453,3 +453,11 @@ Reset Result forgets them. New keys in `App Files\link.ini`: DuplicateCheck (tru
 Codes are compared ignoring upper/lower case and spaces around them. Codes are remembered for 60 days at most.
 Install: close Teeth.exe on laptop 2, copy the new Teeth.exe over the old one (database and Log Data are kept). Laptop 1 needs nothing. Old exe: `App Files\Backup\Teeth_before_duplicate_fix.exe`.
 Tests: `App Files\Source_Build\scan-tests\run-tests.sh` (17 checks). Not yet tested on a real Windows laptop with the real scanner: see test D16-D19 in `docs\Teeth_Two_Laptop_Plan.md`.
+
+
+## UPDATE 2026-11-20 - Change Schedule (Package 6 / v7)
+- Hour/Minute dropdowns have a blank choice. Start and End both blank = the work is CLOSED (not in Plan, not in Target).
+- Button "Close selected work" clears times and sets Target to 0 (row stays, grey). "- Remove selected" deletes the row.
+- Picking an hour sets minute 00. Save lists all problems in a message box and jumps to the Day/Night tab and row.
+- A gap between two open works is a break (Target holds). Only an OVERLAP, a half-filled row, Start = End, or a work outside its shift blocks Save.
+- Rules live in Source\Teeth\ScheduleValidator.cs; tests in Source_Build\schedule-tests.

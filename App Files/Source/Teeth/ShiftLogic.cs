@@ -128,6 +128,13 @@ namespace Teeth
 
             foreach (var block in timeline)
             {
+                // Closed block (no Start/End) or Start == End: not part of the shift.
+                if (string.IsNullOrEmpty(block.StartTime) || string.IsNullOrEmpty(block.EndTime) ||
+                    block.StartTime == block.EndTime)
+                {
+                    continue;
+                }
+
                 int durationMinutes = BlockDurationMinutes(block.StartTime, block.EndTime);
 
                 if (durationMinutes <= 0)

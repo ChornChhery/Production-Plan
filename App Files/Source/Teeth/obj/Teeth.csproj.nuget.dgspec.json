@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "D:\\Teeth\\App Files\\Source\\Teeth\\Teeth.csproj": {}
+    "d:\\Teeth\\App Files\\Source\\Teeth\\Teeth.csproj": {}
   },
   "projects": {
-    "D:\\Teeth\\App Files\\Source\\Teeth\\Teeth.csproj": {
+    "d:\\Teeth\\App Files\\Source\\Teeth\\Teeth.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "D:\\Teeth\\App Files\\Source\\Teeth\\Teeth.csproj",
+        "projectUniqueName": "d:\\Teeth\\App Files\\Source\\Teeth\\Teeth.csproj",
         "projectName": "Teeth",
-        "projectPath": "D:\\Teeth\\App Files\\Source\\Teeth\\Teeth.csproj",
+        "projectPath": "d:\\Teeth\\App Files\\Source\\Teeth\\Teeth.csproj",
         "packagesPath": "C:\\Users\\Dell\\.nuget\\packages\\",
-        "outputPath": "D:\\Teeth\\App Files\\Source\\Teeth\\obj\\",
+        "outputPath": "d:\\Teeth\\App Files\\Source\\Teeth\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"

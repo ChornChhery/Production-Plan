@@ -189,3 +189,11 @@ Fix (Teeth.exe only; TeethSender and the Doctor are unchanged):
 Behaviour notes: the same code counts again in the next shift (scope shift) and after Reset Result; `Ctrl+Alt+O` still adds +1 OUT without any check; scans made while the Change Schedule window is open are checked and the count is held (deferred) as before; closing Teeth does not forget codes. Duplicate check cannot work if the QR text differs on every scan.
 Tests: `App Files\Source_Build\scan-tests\Test-ScanGuard.cs` + `run-tests.sh` (Mono + Mono.Data.Sqlite on Linux, 17 checks passed: first/again/different, case+space, restart, shift/day/always scope, valid list, missing list, Reset). Teeth.exe compiled with `build-with-mono.sh` against `/usr/lib/mono/4.8-api`, no errors.
 **NOT tested on a real Windows laptop with the real scanner:** the character reading in `ScanDetector` (Windows API). First thing to ask the owner if a code looks wrong or empty: what does the QR type in Notepad (prefix/suffix, Tab, special characters, keyboard layout)? Old exe: `App Files\Backup\Teeth_before_duplicate_fix.exe`.
+
+
+## UPDATE 2026-11-20 - Change Schedule (Package 6 / v7)
+- Hour/Minute dropdowns have a blank choice. Start and End both blank = the work is CLOSED (not in Plan, not in Target).
+- Button "Close selected work" clears times and sets Target to 0 (row stays, grey). "- Remove selected" deletes the row.
+- Picking an hour sets minute 00. Save lists all problems in a message box and jumps to the Day/Night tab and row.
+- A gap between two open works is a break (Target holds). Only an OVERLAP, a half-filled row, Start = End, or a work outside its shift blocks Save.
+- Rules live in Source\Teeth\ScheduleValidator.cs; tests in Source_Build\schedule-tests.

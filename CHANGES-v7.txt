@@ -1,0 +1,45 @@
+TEETH - Change Schedule fix (2026-11-20)
+
+INSTALL: close Teeth.exe on LAPTOP 2, copy this Teeth.exe over the old one in C:\Teeth
+(database and Log Data are kept), start it. Laptop 1 needs nothing.
+Old exe: keep a copy first (e.g. App Files\Backup\Teeth_before_schedule_fix.exe).
+
+WHAT WAS WRONG
+1. A Start/End time could never be cleared (dropdowns had no blank choice), so the only
+   way to "close" a work was to delete its row. Leftover old times then overlapped
+   the new ones and Save was refused.
+2. The error was shown in one tiny line and Day AND Night are both checked on Save,
+   so the error could be in the profile you were not looking at. It looked like
+   "Save does nothing".
+3. Picking only an hour left the minute empty = "no time" -> confusing error.
+4. A Target cell still being typed in was not always committed when pressing Save.
+5. Plan In/Out preview counted a row with only a Start time; the real Target did not.
+
+WHAT IS NEW
+- Dropdowns have a blank first choice. Hour+Minute both blank = work CLOSED.
+- New button "Close selected work": clears times and sets targets to 0, keeps the row grey.
+- "- Remove selected" still deletes the row.
+- Picking an hour sets minute 00 automatically; clearing the hour clears the minute.
+- Save now shows a message box listing every problem, switches to the Day/Night tab
+  that has the first problem and selects that row.
+- A half-filled row (only Start or only End) gives a clear error.
+- Closed rows are saved with empty times and 0 targets.
+- Target calculation ignores closed rows and any Start == End row.
+
+HOW CLOSED / BREAKS WORK (unchanged rules)
+- Closed work (no Start/End): not in Plan, not in Target.
+- Gap between two open works = break: Target holds, then continues at the next Start.
+- Overlap (next work starts before previous ends) is the only timing error.
+- Each work must sit inside its shift (Day 08:00-20:00, Night 20:00-08:00).
+- Day and Night are saved together.
+
+TESTS: 31 automatic checks pass (incl. 2000 random schedules + database save/reload) (4 open + 6 closed, gap/break, overlap, half-set row,
+Start==End, outside shift, night across midnight, all closed).
+NOT tested: the buttons/dropdowns on a real Windows screen (no display here).
+Compiled against .NET Framework 4.8 reference assemblies with mono, no errors.
+
+FILES: Teeth.exe, Source\ScheduleSettingsForm.cs (changed), Source\ScheduleValidator.cs (NEW),
+Source\ShiftLogic.cs (changed). Copy the 3 .cs files into App Files\Source\Teeth\.
+
+ANY NUMBER OF WORKS: add as many as you need (4, 5, 10, 15...). Order of rows does not matter:
+overlap is checked by time and Save sorts open works by Start time (closed last).

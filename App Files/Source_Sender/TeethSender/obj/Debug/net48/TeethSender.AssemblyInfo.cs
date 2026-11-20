@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("TeethSender")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+782e89018c6a16888ffaff127746529e4580e66b")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+8fe153b1751b64242808db07df8c1eb362b571a6")]
 [assembly: System.Reflection.AssemblyProductAttribute("TeethSender")]
 [assembly: System.Reflection.AssemblyTitleAttribute("TeethSender")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
