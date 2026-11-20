@@ -57,8 +57,21 @@ namespace Teeth
         private Button _btnReset;
         private Button _btnChangeSchedule;
         private Label _lblLink;
-        private Label _lblScan;               // result of the last QR scan (counted / duplicate / unknown)
-        private DateTime _scanMsgUntil = DateTime.MinValue;
+
+        // Last IN / last OUT boxes in the top bar. Each shows the newest event
+        // (time, running number, where it came from / the scanned code) and
+        // flashes for a few seconds when a new one arrives. The matching
+        // Result cell flashes yellow at the same moment.
+        private enum EventKind { None, Ok, Warn, Bad }
+        private Panel _boxIn, _boxOut;
+        private Label _inTitle, _inValue, _outTitle, _outValue;
+        private EventKind _inKind = EventKind.None, _outKind = EventKind.None;
+        private DateTime _inFlashUntil = DateTime.MinValue, _outFlashUntil = DateTime.MinValue;
+        private bool _inFlashOn, _outFlashOn;
+        private static readonly Color ColEvOk = ColorTranslator.FromHtml("#2f855a");
+        private static readonly Color ColEvWarn = ColorTranslator.FromHtml("#b7791f");
+        private static readonly Color ColEvBad = ColorTranslator.FromHtml("#c53030");
+        private static readonly Color ColCellFlash = ColorTranslator.FromHtml("#fff176");
         private ScanGuard _scanGuard;
 
         // Two-laptop link: IN comes from laptop 1 over the cable, OUT from the
@@ -240,23 +253,18 @@ namespace Teeth
             _lblLink = new Label
             {
                 AutoSize = true,
-                Font = new Font("Arial", 20, FontStyle.Bold),
+                Font = new Font("Arial", 14, FontStyle.Bold),
                 BackColor = _bgColor,
                 ForeColor = ColorGray,
                 Text = "Laptop 1: ..."
             };
             _topPanel.Controls.Add(_lblLink);
 
-            // Last QR scan: green when counted, red when refused (duplicate / unknown).
-            _lblScan = new Label
-            {
-                AutoSize = true,
-                Font = new Font("Arial", 16, FontStyle.Bold),
-                BackColor = _bgColor,
-                ForeColor = ColorGray,
-                Text = ""
-            };
-            _topPanel.Controls.Add(_lblScan);
+            // Last IN and last OUT boxes (see the field comments above).
+            _boxIn = BuildEventBox(out _inTitle, out _inValue);
+            _boxOut = BuildEventBox(out _outTitle, out _outValue);
+            _topPanel.Controls.Add(_boxIn);
+            _topPanel.Controls.Add(_boxOut);
 
             // Line's width and Shift's width both change whenever their
             // text changes (AutoSize), so a plain Anchor isn't enough -
@@ -265,6 +273,110 @@ namespace Teeth
             // Line-name assignments in Load / OpenAdminSettings).
             _topPanel.Resize += (s, e) => PositionTopLabels();
             PositionTopLabels();
+        }
+
+        private Panel BuildEventBox(out Label title, out Label value)
+        {
+            var box = new Panel { BorderStyle = BorderStyle.FixedSingle, BackColor = Color.White, Size = new Size(340, 54) };
+            title = new Label
+            {
+                Location = new Point(5, 2), Size = new Size(328, 20), AutoEllipsis = true,
+                Font = new Font("Arial", 11, FontStyle.Bold), BackColor = Color.Transparent,
+                TextAlign = ContentAlignment.MiddleLeft
+            };
+            value = new Label
+            {
+                Location = new Point(5, 22), Size = new Size(328, 28), AutoEllipsis = true,
+                Font = new Font("Arial", 14, FontStyle.Bold), BackColor = Color.Transparent,
+                TextAlign = ContentAlignment.MiddleLeft
+            };
+            box.Controls.Add(title);
+            box.Controls.Add(value);
+            return box;
+        }
+
+        /// <summary>Shows one IN or OUT event in its box and starts the flash.</summary>
+        private void ShowEvent(bool isIn, string title, string detail, EventKind kind, int flashSeconds)
+        {
+            if (_boxIn == null) return;
+            DateTime until = DateTime.Now.AddSeconds(flashSeconds);
+            if (isIn)
+            {
+                _inTitle.Text = title; _inValue.Text = detail;
+                _inKind = kind; _inFlashUntil = until; _inFlashOn = true;
+            }
+            else
+            {
+                _outTitle.Text = title; _outValue.Text = detail;
+                _outKind = kind; _outFlashUntil = until; _outFlashOn = true;
+            }
+            ApplyEventStyle(isIn);
+        }
+
+        /// <summary>A +1 was counted: "IN +1   #12   14:03:22" and where it came from.</summary>
+        private void ShowCountEvent(bool isIn, string detail, EventKind kind)
+        {
+            int n = isIn ? _liveCounts.CountIn + _deferredIn : _liveCounts.CountOut + _deferredOut;
+            ShowEvent(isIn, (isIn ? "IN" : "OUT") + " +1    #" + n + "    " + DateTime.Now.ToString("HH:mm:ss"),
+                detail, kind, 4);
+        }
+
+        /// <summary>Colours of a box (and of its Result cell) for flashing or calm state.</summary>
+        private void ApplyEventStyle(bool isIn)
+        {
+            if (_boxIn == null) return;
+            Panel box = isIn ? _boxIn : _boxOut;
+            Label t = isIn ? _inTitle : _outTitle;
+            Label v = isIn ? _inValue : _outValue;
+            EventKind kind = isIn ? _inKind : _outKind;
+            bool on = isIn ? _inFlashOn : _outFlashOn;
+
+            Color back, fore;
+            if (on && kind != EventKind.None)
+            {
+                back = kind == EventKind.Ok ? ColEvOk : (kind == EventKind.Warn ? ColEvWarn : ColEvBad);
+                fore = Color.White;
+            }
+            else
+            {
+                back = Color.White;
+                fore = kind == EventKind.Bad ? ColEvBad
+                     : kind == EventKind.Warn ? ColEvWarn
+                     : kind == EventKind.Ok ? ColorNavy : ColorGray;
+            }
+            box.BackColor = back;
+            t.ForeColor = fore;
+            v.ForeColor = fore;
+
+            Label cell = _cells[3, isIn ? 1 : 2];
+            if (cell != null)
+            {
+                cell.BackColor = (on && (kind == EventKind.Ok || kind == EventKind.Warn)) ? ColCellFlash : _bgColor;
+            }
+        }
+
+        /// <summary>Called every clock tick: ends a flash when its time is up.</summary>
+        private void UpdateEventFlash(DateTime now)
+        {
+            bool inOn = now < _inFlashUntil;
+            if (inOn != _inFlashOn) { _inFlashOn = inOn; ApplyEventStyle(true); }
+            bool outOn = now < _outFlashUntil;
+            if (outOn != _outFlashOn) { _outFlashOn = outOn; ApplyEventStyle(false); }
+        }
+
+        /// <summary>Back to "waiting" (start, Reset Result, shift rollover).</summary>
+        private void ResetEventBoxes()
+        {
+            if (_boxIn == null) return;
+            _inKind = EventKind.None; _outKind = EventKind.None;
+            _inFlashOn = false; _outFlashOn = false;
+            _inFlashUntil = DateTime.MinValue; _outFlashUntil = DateTime.MinValue;
+            _inTitle.Text = "IN  -  last count";
+            _inValue.Text = "waiting for first IN";
+            _outTitle.Text = "OUT  -  last scan";
+            _outValue.Text = "waiting for first scan";
+            ApplyEventStyle(true);
+            ApplyEventStyle(false);
         }
 
         /// <summary>Re-centers the Line label and re-right-aligns the Shift
@@ -276,8 +388,16 @@ namespace Teeth
         {
             _lblLine.Location = new Point((_topPanel.Width - _lblLine.Width) / 2, 10);
             _lblShift.Location = new Point(_topPanel.Width - _lblShift.Width - 20, 10);
-            _lblLink.Location = new Point((_topPanel.Width - _lblLink.Width) / 2, 86);
-            _lblScan.Location = new Point((_topPanel.Width - _lblScan.Width) / 2, 118);
+            _lblLink.Location = new Point((_topPanel.Width - _lblLink.Width) / 2, 66);
+
+            // IN / OUT boxes sit side by side in the free space between the
+            // Time/Date/Elapsed column (left) and the buttons (right).
+            int avail = _topPanel.Width - 330 - 240;
+            int bw = Math.Max(200, Math.Min(380, (avail - 10) / 2));
+            int x0 = 330 + Math.Max(0, (avail - (bw * 2 + 10)) / 2);
+            _boxIn.SetBounds(x0, 92, bw, 54);
+            _boxOut.SetBounds(x0 + bw + 10, 92, bw, 54);
+            _inTitle.Width = _inValue.Width = _outTitle.Width = _outValue.Width = bw - 12;
             // Reset Result on top, Change Schedule directly underneath it,
             // both right-aligned under the Shift label (panel is 150px tall).
             _btnReset.Location = new Point(_topPanel.Width - _btnReset.Width - 20, 68);
@@ -443,6 +563,7 @@ namespace Teeth
             LoadTimelineForShift(_currentShiftMode);
 
             RefreshResultCells();
+            ResetEventBoxes();
 
             _clockTimer = new System.Windows.Forms.Timer { Interval = 100 };
             _clockTimer.Tick += ClockTimer_Tick;
@@ -539,13 +660,13 @@ namespace Teeth
                 // Manual fallback if the cable or the scanner is out of action.
                 if (keyData == (Keys.Control | Keys.Alt | Keys.I))
                 {
-                    if (!isAutoRepeat) IncrementCountIn();
+                    if (!isAutoRepeat) IncrementCountIn("manual (Ctrl+Alt+I)");
                     return true;
                 }
 
                 if (keyData == (Keys.Control | Keys.Alt | Keys.O))
                 {
-                    if (!isAutoRepeat) IncrementCountOut();
+                    if (!isAutoRepeat) IncrementCountOut("manual (Ctrl+Alt+O)", EventKind.Ok);
                     return true;
                 }
 
@@ -617,18 +738,18 @@ namespace Teeth
             }
         }
 
-        private void IncrementCountIn()
+        private void IncrementCountIn(string source)
         {
-            if (_settingsOpen) { _deferredIn++; return; }
-            _liveCounts.CountIn++;
-            RefreshResultCells();
+            if (_settingsOpen) _deferredIn++;
+            else { _liveCounts.CountIn++; RefreshResultCells(); }
+            ShowCountEvent(true, source, EventKind.Ok);
         }
 
-        private void IncrementCountOut()
+        private void IncrementCountOut(string detail, EventKind kind)
         {
-            if (_settingsOpen) { _deferredOut++; return; }
-            _liveCounts.CountOut++;
-            RefreshResultCells();
+            if (_settingsOpen) _deferredOut++;
+            else { _liveCounts.CountOut++; RefreshResultCells(); }
+            ShowCountEvent(false, detail, kind);
         }
 
         // ------------------------------------------------------------------
@@ -638,7 +759,7 @@ namespace Teeth
         /// <summary>"+1 IN" arrived from laptop 1 (background thread).</summary>
         private void OnLinkIn()
         {
-            try { BeginInvoke(new Action(IncrementCountIn)); }
+            try { BeginInvoke(new Action(() => IncrementCountIn("from Laptop 1 (cable)"))); }
             catch (InvalidOperationException) { /* window is closing */ }
         }
 
@@ -672,7 +793,7 @@ namespace Teeth
             switch (r.Verdict)
             {
                 case ScanVerdict.Accept:
-                    IncrementCountOut();
+                    IncrementCountOut(r.Code, EventKind.Ok);
                     try { _scanGuard.Remember(r.Code, shiftKey, now); } catch { }
                     // Save right away so the count and its code cannot get out of step.
                     if (!_settingsOpen)
@@ -684,35 +805,27 @@ namespace Teeth
                         }
                         catch { }
                     }
-                    ShowScanMessage("OUT counted: " + r.Code, "#0a7a2f", 4);
                     break;
 
                 case ScanVerdict.Unreadable:
-                    IncrementCountOut();
-                    ShowScanMessage("OUT counted (code not readable)", "#b7791f", 4);
+                    IncrementCountOut("code not readable", EventKind.Warn);
                     break;
 
                 case ScanVerdict.Duplicate:
                     ScanGuard.LogRejected(r, now);
                     System.Media.SystemSounds.Hand.Play();
-                    ShowScanMessage("DUPLICATE - NOT counted: " + r.Code +
-                        " (already counted " + r.FirstScanAt.ToString("HH:mm:ss") + ")", "#c53030", 15);
+                    ShowEvent(false, "DUPLICATE   " + now.ToString("HH:mm:ss") +
+                        "   (first " + r.FirstScanAt.ToString("HH:mm:ss") + ")",
+                        "NOT counted: " + r.Code, EventKind.Bad, 15);
                     break;
 
                 default: // Unknown
                     ScanGuard.LogRejected(r, now);
                     System.Media.SystemSounds.Hand.Play();
-                    ShowScanMessage("UNKNOWN code - NOT counted: " + r.Code, "#c53030", 15);
+                    ShowEvent(false, "UNKNOWN CODE   " + now.ToString("HH:mm:ss"),
+                        "NOT counted: " + r.Code, EventKind.Bad, 15);
                     break;
             }
-        }
-
-        private void ShowScanMessage(string text, string colorHex, int seconds)
-        {
-            _lblScan.Text = text;
-            _lblScan.ForeColor = ColorTranslator.FromHtml(colorHex);
-            _scanMsgUntil = DateTime.Now.AddSeconds(seconds);
-            PositionTopLabels();
         }
 
         private void UpdateLinkStatus()
@@ -775,6 +888,7 @@ namespace Teeth
             _lastSavedFrozen = 0.0;
 
             RefreshResultCells();
+            ResetEventBoxes();
         }
 
         // ------------------------------------------------------------------
@@ -803,7 +917,7 @@ namespace Teeth
             _currentShiftKey = shiftKey;
             _lblShift.Text = $"Shift: {shiftMode}";
             UpdateLinkStatus();
-            if (_lblScan.Text.Length > 0 && now > _scanMsgUntil) _lblScan.Text = "";
+            UpdateEventFlash(now);
             PositionTopLabels();
 
             DateTime shiftStart = ShiftCalculator.GetShiftStart(now);
@@ -841,6 +955,7 @@ namespace Teeth
 
             LoadTimelineForShift(newShiftMode);
             RefreshResultCells();
+            ResetEventBoxes();
 
             System.Diagnostics.Debug.WriteLine($"Shift boundary crossed. Rolled over to {newShiftMode} Shift. Registers wiped.");
         }

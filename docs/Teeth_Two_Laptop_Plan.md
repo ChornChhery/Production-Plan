@@ -321,3 +321,24 @@ Install: close Teeth.exe on laptop 2, copy the new Teeth.exe over the old one in
 | D19 | Scan a QR in Notepad | The serial typed is the same as the one in the green message (case ignored) |
 
 Not yet tested on a real Windows laptop with the real scanner (reading the typed characters). Works only if every QR holds its own serial number.
+
+## UPDATE 2026-11-20 - Change Schedule close + IN/OUT boxes (Package 7)
+
+**Change Schedule.** Choosing the blank at the Start hour or End hour closes the whole work: Start/End blank, Target IN/OUT = 0, Tact "-", row grey, Plan drops. "Close selected work" does the same.
+**Screen.** The top bar has an IN box and an OUT box (last event, flashes green 4 s, red 15 s for a refused scan, Result cell yellow). They replace the single message line of 2026-11-19 (same colours and seconds).
+Install: close Teeth.exe on laptop 2, copy the new Teeth.exe over the old one in C:\Teeth (database and Log Data kept). Laptop 1 unchanged. Old exe: `App Files\Backup\Teeth_before_close_reset_fix.exe`.
+
+| No. | Test (laptop 2) | Expected |
+|---|---|---|
+| S1 | Change Schedule: blank at the Start hour of an open work | End, Target IN/OUT = 0, Tact -, row grey, Plan IN/OUT drop |
+| S2 | Same with the End hour | Same |
+| S3 | Click a row, Close selected work | Same |
+| S4 | Closed row: pick Start hour, End hour, type Target OUT | Minute 00 by itself, Tact shows a number, Plan rises |
+| S5 | Close a work, Save Changes, open Change Schedule again | No error; closed work at the bottom, grey, 0 targets |
+| E1 | Press the key button on laptop 1 | IN box green with number and time, Result IN cell yellow, then calm |
+| E2 | Scan a new item | OUT box green with the serial, Result OUT +1, cell yellow |
+| E3 | Scan the same item again | OUT box red DUPLICATE, beep, no count |
+| E4 | Click the Teeth window, Ctrl+Alt+I, Ctrl+Alt+O | Boxes show "manual (Ctrl+Alt+I)" / "manual (Ctrl+Alt+O)" |
+| E5 | Reset Result > Yes; make the window narrower and wider | Boxes show "waiting"; no overlap with clock or buttons |
+
+Checked here: compiled with mono against the real .NET Framework 4.8 reference assemblies, no errors. NOT yet tested on a real Windows screen (layout, colours, dropdowns) - do S1-S5 and E1-E5 once.

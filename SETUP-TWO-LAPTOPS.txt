@@ -108,7 +108,7 @@ PHASE 2 - install and test our programs (steps 16-24)   [Build 2 confirmed worki
  21. LAPTOP 1: Double-click TeethSender.exe. The bar goes green and Teeth turns "Laptop 1: Connected".
                Tray icon > Show last keys (test) lists P then Enter. Optional: shortcut in shell:startup (Win+R).
  22. LAPTOP 1: Press the key button. The label prints. On laptop 2 Result IN goes up by 1.
- 23. LAPTOP 2: Scan one item. The label prints. Result OUT goes up by 1 (green message with the code). Scan the SAME item again: Result OUT does NOT change (red message DUPLICATE + beep). Typing a name changes nothing.
+ 23. LAPTOP 2: Scan one item. The label prints. Result OUT goes up by 1 (green message with the code; from Package 7 it is shown in the OUT box in the top bar). Scan the SAME item again: Result OUT does NOT change (red message DUPLICATE + beep). Typing a name changes nothing.
  24. BOTH:     Print one label on each laptop: printing works as before. Then run the 12 acceptance tests
                in docs\Teeth_Two_Laptop_Plan.md.
   Test-Link.bat is run on BOTH laptops: laptop 2 first (step 19), then laptop 1 (step 20).
@@ -182,3 +182,14 @@ UPDATE 2026-11-19 - THE SAME QR CODE IS NOT COUNTED TWICE (Result OUT, laptop 2)
   Test D16 (laptop 2): scan item A -> OUT +1; scan item A again -> OUT unchanged + red message; scan item B -> OUT +1.
   Works only if every QR holds its own serial number. Scan a QR in Notepad to see what it contains.
   Not yet tested on a real Windows laptop with the real scanner (reading the typed characters). If the green message shows a wrong or empty code, send a photo and the QR content.
+
+UPDATE 2026-11-20 - CHANGE SCHEDULE + IN BOX AND OUT BOX (Package 7)
+  Change Schedule: choose the blank line at the Start hour or End hour = the WHOLE work is closed (Start/End blank, Target IN/OUT = 0, Tact -, row grey, Plan drops). The button "Close selected work" does the same.
+  Screen (laptop 2): the top bar has an IN box and an OUT box. Each shows the LAST count: "IN +1  #652  06:50:09" and where it came from (IN: from Laptop 1 (cable); OUT: the scanned serial).
+    New count = flashes green 4 s (orange = code not readable) and the Result IN / Result OUT cell turns yellow. Refused scan (DUPLICATE / UNKNOWN CODE) = red 15 s + beep, no count.
+    After the flash the box is white and keeps its text. Start of Teeth, Reset Result and shift change = both boxes say "waiting".
+    This replaces the single message line of 2026-11-19 (same colours and seconds).
+  Install: close Teeth.exe on LAPTOP 2 only, copy the new Teeth.exe over the old one in C:\Teeth (database and Log Data are kept), start it. Laptop 1 and TeethSender.exe need nothing. Old exe: App Files\Backup\Teeth_before_close_reset_fix.exe (contains both changes).
+  Tests (laptop 2): S1 blank at Start hour of an open work: End, targets, Tact reset, row grey, Plan drops. S2 same with End hour. S3 Close selected work: same. S4 pick Start hour on a closed row: minute 00, then End hour + targets: Tact shows. S5 close a work, Save, reopen: closed work at the bottom, 0 targets, no error.
+  E1 key button on laptop 1: IN box flashes green with number and time, Result IN cell yellow. E2 scan a new item: OUT box green with the serial, Result OUT +1. E3 scan it again: OUT box red DUPLICATE + beep, no count. E4 Ctrl+Alt+I / Ctrl+Alt+O: boxes say manual. E5 Reset Result: both boxes say waiting; narrow/wide the window: boxes do not overlap clock or buttons.
+  Checked here: compiled with mono against the real .NET Framework 4.8 reference assemblies, no errors. NOT yet tested on a real Windows screen (layout, colours, dropdowns) - do S1-S5 and E1-E5 once.

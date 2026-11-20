@@ -43,3 +43,13 @@ Source\ShiftLogic.cs (changed). Copy the 3 .cs files into App Files\Source\Teeth
 
 ANY NUMBER OF WORKS: add as many as you need (4, 5, 10, 15...). Order of rows does not matter:
 overlap is checked by time and Save sorts open works by Start time (closed last).
+
+----------------------------------------------------------------
+UPDATE 2026-11-20 (b) - closing a work now resets the whole row
+- Choosing the blank at Start hour OR End hour now closes the work: Start, End,
+  Target IN, Target OUT go blank/0, TACT shows "-", Plan IN/OUT update at once.
+  Before, only that hour's minute was cleared and the rest stayed on screen.
+- "Close selected work" button uses the same code.
+- Old exe kept: App Files\Backup\Teeth_before_close_reset_fix.exe
+- Compiled with mono against .NET 4.8 references, no errors. Not tested on a real
+  Windows screen.

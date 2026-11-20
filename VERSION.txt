@@ -1,4 +1,12 @@
-TEETH package version  (latest: Package 6 / v7, 2026-11-20)
+TEETH package version  (latest: Package 7 / v8, 2026-11-20)
+
+Package 7 (v8) - 2026-11-20  (Teeth.exe CHANGED: Change Schedule close resets the whole row; IN box and OUT box on the Teeth screen; all PDFs and documents updated)
+  Change Schedule: blank at Start hour or End hour closes the whole work (End, Target IN/OUT = 0, Tact -, row grey, Plan drops). Before, only the minute was cleared.
+  Screen: IN box and OUT box in the top bar (last event, number, time, source/serial; flash green 4 s, red 15 s for DUPLICATE / UNKNOWN CODE; Result cell flashes yellow). Replaces the single message line of Package 5.
+  Files: Source\Teeth\ScheduleSettingsForm.cs, MainDashboard.cs (changed). LinkServer, ScanGuard, ScanDetector, TeethSender unchanged. Old exe kept: App Files\Backup\Teeth_before_close_reset_fix.exe.
+  Documents: the dashboard picture (Figure 14 / page 15) redrawn with the two boxes (items 10 and 11); a stamp note on that page and on the 2026-11-19 page; 2 new last pages UPDATE 2026-11-20 (a) schedule and (b) IN/OUT boxes in START-HERE_Teeth_Quick_Visual_Guide.pdf, Teeth_Troubleshooting_Guide.pdf, Teeth_Rollout_Kit.pdf and docs\Teeth_Full_Reference_Guide.pdf; README, SETUP-TWO-LAPTOPS, plan, AI_CONTEXT and CHANGES-v8.txt updated.
+  Tests: S1-S5 and E1-E5 in docs\Teeth_Two_Laptop_Plan.md. Compiled with mono against the real .NET Framework 4.8 references, no errors. NOT yet tested on a real Windows screen.
+  Install: close Teeth.exe on LAPTOP 2 only, copy the new Teeth.exe over the old one in C:\Teeth (database and Log Data are kept), start it. Laptop 1 needs nothing.
 
 Package 6 (v7) - 2026-11-20  (Teeth.exe CHANGED: Change Schedule can close works and now explains why it cannot save)
   Problem reported: setting only 4 works (others closed) with Target IN/OUT could not be saved in Change Schedule.
@@ -8,7 +16,7 @@ Package 6 (v7) - 2026-11-20  (Teeth.exe CHANGED: Change Schedule can close works
   Files: Source\Teeth\ScheduleSettingsForm.cs (changed), ScheduleValidator.cs (NEW), ShiftLogic.cs (changed). Old exe kept: App Files\Backup\Teeth_before_schedule_fix.exe.
   Tests: 31 automatic checks pass (incl. 2000 random schedules and a real database save/reload) (App Files\Source_Build\schedule-tests). NOT yet tested on a real Windows screen with the real buttons.
   Install: close Teeth.exe on LAPTOP 2 only, copy the new Teeth.exe over the old one in C:\Teeth (database and Log Data are kept), start it. Laptop 1 needs nothing.
-  The PDFs are NOT updated for this change (they describe v6); see this file and README.md.
+  (Package 7 updated the PDFs and documents for this change.)
 
 
 Package 5 - 2026-11-19  (Teeth.exe CHANGED: the same QR code scanned again is NOT counted again in Result OUT; TeethSender.exe and the Doctor unchanged)

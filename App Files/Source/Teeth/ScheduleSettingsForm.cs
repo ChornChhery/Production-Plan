@@ -808,17 +808,32 @@ namespace Teeth
             }
             _lblErrors.Text = "";
             _grid.EndEdit();
+            CloseRow(current.Index, -1);
+        }
+
+        /// <summary>Resets one row to the closed state: Start + End blank,
+        /// Target In/Out = 0, Tact = "-", Plan totals refreshed.
+        /// skipCol = the cell that triggered the close (already blank, and
+        /// possibly still being edited), so it is not written to again.</summary>
+        private void CloseRow(int rowIndex, int skipCol)
+        {
+            if (rowIndex < 0 || rowIndex >= _grid.Rows.Count) return;
+            var row = _grid.Rows[rowIndex];
+
+            bool prev = _suspendRecalc;
             _suspendRecalc = true;
-            current.Cells[_colStartHour].Value = "";
-            current.Cells[_colStartMin].Value = "";
-            current.Cells[_colEndHour].Value = "";
-            current.Cells[_colEndMin].Value = "";
-            current.Cells[_colTargetIn].Value = "0";
-            current.Cells[_colTargetOut].Value = "0";
-            _suspendRecalc = false;
-            RecomputeTact(current.Index);
+            try
+            {
+                foreach (int col in new[] { _colStartHour, _colStartMin, _colEndHour, _colEndMin })
+                    if (col != skipCol) row.Cells[col].Value = "";
+                row.Cells[_colTargetIn].Value = "0";
+                row.Cells[_colTargetOut].Value = "0";
+            }
+            finally { _suspendRecalc = prev; }
+
+            RecomputeTact(rowIndex);
             RecalcPlanTotals();
-            _grid.InvalidateRow(current.Index);
+            _grid.InvalidateRow(rowIndex);
         }
 
         private void SyncGridIntoList(string profile)
@@ -888,6 +903,15 @@ namespace Teeth
 
             bool isTimeCol = e.ColumnIndex == _colStartHour || e.ColumnIndex == _colStartMin ||
                               e.ColumnIndex == _colEndHour || e.ColumnIndex == _colEndMin;
+
+            // Choosing blank in a Start or End HOUR closes the whole work:
+            // the other time, both targets and Tact all reset too.
+            if ((e.ColumnIndex == _colStartHour || e.ColumnIndex == _colEndHour) &&
+                string.IsNullOrEmpty(Convert.ToString(_grid.Rows[e.RowIndex].Cells[e.ColumnIndex].Value)))
+            {
+                CloseRow(e.RowIndex, e.ColumnIndex);
+                return;
+            }
 
             AutoFillMinute(e.RowIndex, e.ColumnIndex);
 
