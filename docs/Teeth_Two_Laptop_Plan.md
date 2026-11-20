@@ -324,6 +324,9 @@ Not yet tested on a real Windows laptop with the real scanner (reading the typed
 
 ## UPDATE 2026-11-20 - Change Schedule close + IN/OUT boxes (Package 7)
 
+> **SUPERSEDED by UPDATE 2026-11-20 (c) (v9) below:** the IN box / OUT box and the yellow Result cell no longer exist; see (c).
+
+
 **Change Schedule.** Choosing the blank at the Start hour or End hour closes the whole work: Start/End blank, Target IN/OUT = 0, Tact "-", row grey, Plan drops. "Close selected work" does the same.
 **Screen.** The top bar has an IN box and an OUT box (last event, flashes green 4 s, red 15 s for a refused scan, Result cell yellow). They replace the single message line of 2026-11-19 (same colours and seconds).
 Install: close Teeth.exe on laptop 2, copy the new Teeth.exe over the old one in C:\Teeth (database and Log Data kept). Laptop 1 unchanged. Old exe: `App Files\Backup\Teeth_before_close_reset_fix.exe`.
@@ -342,3 +345,28 @@ Install: close Teeth.exe on laptop 2, copy the new Teeth.exe over the old one in
 | E5 | Reset Result > Yes; make the window narrower and wider | Boxes show "waiting"; no overlap with clock or buttons |
 
 Checked here: compiled with mono against the real .NET Framework 4.8 reference assemblies, no errors. NOT yet tested on a real Windows screen (layout, colours, dropdowns) - do S1-S5 and E1-E5 once.
+
+## UPDATE 2026-11-20 (c) - v9: one-line message instead of the boxes + daily Excel log
+
+```
+Install (laptop 2 only): close Teeth.exe, copy the new Teeth.exe over the old one in C:\Teeth (database and Log Data are kept), start it. Laptop 1 and TeethSender.exe need nothing. Old exe: App Files\Backup\Teeth_before_v9_boxes_removed.exe.
+1. The Result IN / Result OUT cells never change colour any more (no yellow). The big IN box and OUT box are gone. "Laptop 1: Connected" stays.
+2. A thin one-line message (30 px, small text) sits between the top bar and the table, exactly over the IN column (item 10) and over the OUT column (item 11). It is EMPTY all the time, and only shows when something happens:
+     IN column : key button pressed on laptop 1  ->  "IN +1   #652   17:42:10"  (5 s)
+     OUT column: new code scanned                ->  "OUT +1   #340   SN-123456" (the serial)  (5 s); "code not readable" in orange when no code was read
+                 same code again                  ->  "DUPLICATE   SN-123456  (first 17:30:00)" in red + beep (10 s), NOT counted
+                 code not on the valid list       ->  "UNKNOWN CODE   <code>" in red + beep (10 s), NOT counted
+   The message also disappears on Reset Result and at a shift change, and is empty when Teeth starts.
+3. DAILY EXCEL LOG: every IN, every OUT and every refused scan is written to  Log Data\Teeth_Daily_yyyy-MM-dd.xlsx  (one file per day, a new file at 00:00).
+     Sheet "Events": Time | Date | Line | Shift | Event | Number | Detail
+       Event = IN, OUT, OUT (code not readable), REFUSED - DUPLICATE, REFUSED - UNKNOWN CODE
+       Number = the Result IN / OUT number after that event (empty for a refused scan)
+       Detail = IN: where it came from; OUT: the scanned serial; refused: the code (duplicate: and when it was first scanned)
+     Sheet "Summary": IN / OUT / not readable / refused per Day shift, Night shift and Total (formulas).
+   To find out if a barcode was scanned: open that day's file, press Ctrl+F, type the code. A night shift that passes midnight is split over two daily files by the clock date.
+   Rows are saved in the background every ~3 s and when Teeth closes. If the day's file is open in Excel the rows wait and are written when it is closed (nothing is lost).
+   Teeth_Log.xlsx (one row per shift: Plan / Target / Result) is unchanged.
+4. Tests E1-E5 (laptop 2): E1 press the key button on laptop 1: one line "IN +1 #n time" over the IN column for 5 s, Result IN +1, NO yellow. E2 scan a new item: "OUT +1 #n serial" over the OUT column, Result OUT +1. E3 scan it again: red "DUPLICATE serial (first time)" + beep, no count. E4 Ctrl+Alt+I / Ctrl+Alt+O: lines say "manual (Ctrl+Alt+I)" / "manual (Ctrl+Alt+O)". E5 Reset Result: both lines empty. E6 open Log Data\Teeth_Daily_<today>.xlsx: every action of E1-E3 is a row in Events (close Excel afterwards).
+Limits: the IN line shows no code because the key button on laptop 1 sends none. Compiled with mono against the real .NET Framework 4.8 reference assemblies, no errors; the Excel writing was tested on the build machine; NOT yet tested on a real Windows screen: do E1-E6 once.
+Code: MainDashboard.cs (ShowMsg, UpdateMsgs, PositionMsgs, ClearMsgs, LogEvent) and the new DailyEventLog.cs.
+```

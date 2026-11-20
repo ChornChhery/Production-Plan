@@ -58,20 +58,19 @@ namespace Teeth
         private Button _btnChangeSchedule;
         private Label _lblLink;
 
-        // Last IN / last OUT boxes in the top bar. Each shows the newest event
-        // (time, running number, where it came from / the scanned code) and
-        // flashes for a few seconds when a new one arrives. The matching
-        // Result cell flashes yellow at the same moment.
-        private enum EventKind { None, Ok, Warn, Bad }
-        private Panel _boxIn, _boxOut;
-        private Label _inTitle, _inValue, _outTitle, _outValue;
-        private EventKind _inKind = EventKind.None, _outKind = EventKind.None;
-        private DateTime _inFlashUntil = DateTime.MinValue, _outFlashUntil = DateTime.MinValue;
-        private bool _inFlashOn, _outFlashOn;
-        private static readonly Color ColEvOk = ColorTranslator.FromHtml("#2f855a");
-        private static readonly Color ColEvWarn = ColorTranslator.FromHtml("#b7791f");
-        private static readonly Color ColEvBad = ColorTranslator.FromHtml("#c53030");
-        private static readonly Color ColCellFlash = ColorTranslator.FromHtml("#fff176");
+        // Every IN / OUT / refused scan is written to a daily Excel file in Log Data.
+        private DailyEventLog _dailyLog;
+        private static readonly Color ColMsgOk = ColorTranslator.FromHtml("#0a7a2f");
+        private static readonly Color ColMsgWarn = ColorTranslator.FromHtml("#b7791f");
+        private static readonly Color ColMsgBad = ColorTranslator.FromHtml("#c53030");
+
+        // Slim message strip between the top bar and the table: under the IN
+        // column it shows the last IN (button on laptop 1), under the OUT column
+        // the last scan (serial number, or DUPLICATE). Text only, no colour
+        // flash on the Result cells; it clears itself after a few seconds.
+        private Panel _msgStrip;
+        private Label _msgIn, _msgOut;
+        private DateTime _msgInUntil = DateTime.MinValue, _msgOutUntil = DateTime.MinValue;
         private ScanGuard _scanGuard;
 
         // Two-laptop link: IN comes from laptop 1 over the cable, OUT from the
@@ -119,6 +118,7 @@ namespace Teeth
         {
             _db = db ?? throw new ArgumentNullException(nameof(db));
             _excelLogger = new ExcelLogger(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Log Data"));
+            _dailyLog = new DailyEventLog(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Log Data"));
 
             InitializeComponent();
             BuildTopBar();
@@ -152,6 +152,13 @@ namespace Teeth
             // Height matches the reference: table_frame is packed with
             // pady=(150, 10), i.e. the grid starts 150px down from the top
             // of the window in the Tkinter version.
+            _msgStrip = new Panel { Dock = DockStyle.Top, Height = 30, BackColor = _bgColor };
+            _msgIn = NewMsgLabel();
+            _msgOut = NewMsgLabel();
+            _msgStrip.Controls.Add(_msgIn);
+            _msgStrip.Controls.Add(_msgOut);
+            Controls.Add(_msgStrip);
+
             _topPanel = new Panel
             {
                 Dock = DockStyle.Top,
@@ -260,12 +267,6 @@ namespace Teeth
             };
             _topPanel.Controls.Add(_lblLink);
 
-            // Last IN and last OUT boxes (see the field comments above).
-            _boxIn = BuildEventBox(out _inTitle, out _inValue);
-            _boxOut = BuildEventBox(out _outTitle, out _outValue);
-            _topPanel.Controls.Add(_boxIn);
-            _topPanel.Controls.Add(_boxOut);
-
             // Line's width and Shift's width both change whenever their
             // text changes (AutoSize), so a plain Anchor isn't enough -
             // recompute positions on every resize AND whenever the text
@@ -275,108 +276,72 @@ namespace Teeth
             PositionTopLabels();
         }
 
-        private Panel BuildEventBox(out Label title, out Label value)
+        private Label NewMsgLabel()
         {
-            var box = new Panel { BorderStyle = BorderStyle.FixedSingle, BackColor = Color.White, Size = new Size(340, 54) };
-            title = new Label
+            return new Label
             {
-                Location = new Point(5, 2), Size = new Size(328, 20), AutoEllipsis = true,
-                Font = new Font("Arial", 11, FontStyle.Bold), BackColor = Color.Transparent,
-                TextAlign = ContentAlignment.MiddleLeft
+                Font = new Font("Arial", 12, FontStyle.Bold),
+                BackColor = _bgColor,
+                TextAlign = ContentAlignment.MiddleCenter,
+                AutoEllipsis = true,
+                Text = ""
             };
-            value = new Label
-            {
-                Location = new Point(5, 22), Size = new Size(328, 28), AutoEllipsis = true,
-                Font = new Font("Arial", 14, FontStyle.Bold), BackColor = Color.Transparent,
-                TextAlign = ContentAlignment.MiddleLeft
-            };
-            box.Controls.Add(title);
-            box.Controls.Add(value);
-            return box;
         }
 
-        /// <summary>Shows one IN or OUT event in its box and starts the flash.</summary>
-        private void ShowEvent(bool isIn, string title, string detail, EventKind kind, int flashSeconds)
+        /// <summary>Puts the strip labels exactly over the IN and OUT columns of the table.</summary>
+        private void PositionMsgs()
         {
-            if (_boxIn == null) return;
-            DateTime until = DateTime.Now.AddSeconds(flashSeconds);
-            if (isIn)
-            {
-                _inTitle.Text = title; _inValue.Text = detail;
-                _inKind = kind; _inFlashUntil = until; _inFlashOn = true;
-            }
-            else
-            {
-                _outTitle.Text = title; _outValue.Text = detail;
-                _outKind = kind; _outFlashUntil = until; _outFlashOn = true;
-            }
-            ApplyEventStyle(isIn);
+            if (_grid == null || _msgIn == null) return;
+            int[] w = _grid.GetColumnWidths();
+            if (w == null || w.Length < 3) return;
+            int h = _msgStrip.Height;
+            _msgIn.SetBounds(10 + w[0], 0, w[1], h);
+            _msgOut.SetBounds(10 + w[0] + w[1], 0, w[2], h);
         }
 
-        /// <summary>A +1 was counted: "IN +1   #12   14:03:22" and where it came from.</summary>
-        private void ShowCountEvent(bool isIn, string detail, EventKind kind)
+        /// <summary>Shows one message (two lines) for a few seconds. isIn = IN column, else OUT column.</summary>
+        private void ShowMsg(bool isIn, string line1, string line2, Color color, int seconds)
         {
-            int n = isIn ? _liveCounts.CountIn + _deferredIn : _liveCounts.CountOut + _deferredOut;
-            ShowEvent(isIn, (isIn ? "IN" : "OUT") + " +1    #" + n + "    " + DateTime.Now.ToString("HH:mm:ss"),
-                detail, kind, 4);
+            if (_msgIn == null) return;
+            Label l = isIn ? _msgIn : _msgOut;
+            l.ForeColor = color;
+            l.Text = line2.Length > 0 ? line1 + "   " + line2 : line1;
+            DateTime until = DateTime.Now.AddSeconds(seconds);
+            if (isIn) _msgInUntil = until; else _msgOutUntil = until;
         }
 
-        /// <summary>Colours of a box (and of its Result cell) for flashing or calm state.</summary>
-        private void ApplyEventStyle(bool isIn)
+        private void ClearMsgs()
         {
-            if (_boxIn == null) return;
-            Panel box = isIn ? _boxIn : _boxOut;
-            Label t = isIn ? _inTitle : _outTitle;
-            Label v = isIn ? _inValue : _outValue;
-            EventKind kind = isIn ? _inKind : _outKind;
-            bool on = isIn ? _inFlashOn : _outFlashOn;
-
-            Color back, fore;
-            if (on && kind != EventKind.None)
-            {
-                back = kind == EventKind.Ok ? ColEvOk : (kind == EventKind.Warn ? ColEvWarn : ColEvBad);
-                fore = Color.White;
-            }
-            else
-            {
-                back = Color.White;
-                fore = kind == EventKind.Bad ? ColEvBad
-                     : kind == EventKind.Warn ? ColEvWarn
-                     : kind == EventKind.Ok ? ColorNavy : ColorGray;
-            }
-            box.BackColor = back;
-            t.ForeColor = fore;
-            v.ForeColor = fore;
-
-            Label cell = _cells[3, isIn ? 1 : 2];
-            if (cell != null)
-            {
-                cell.BackColor = (on && (kind == EventKind.Ok || kind == EventKind.Warn)) ? ColCellFlash : _bgColor;
-            }
+            if (_msgIn == null) return;
+            _msgIn.Text = ""; _msgOut.Text = "";
+            _msgInUntil = DateTime.MinValue; _msgOutUntil = DateTime.MinValue;
         }
 
-        /// <summary>Called every clock tick: ends a flash when its time is up.</summary>
-        private void UpdateEventFlash(DateTime now)
+        private void UpdateMsgs(DateTime now)
         {
-            bool inOn = now < _inFlashUntil;
-            if (inOn != _inFlashOn) { _inFlashOn = inOn; ApplyEventStyle(true); }
-            bool outOn = now < _outFlashUntil;
-            if (outOn != _outFlashOn) { _outFlashOn = outOn; ApplyEventStyle(false); }
+            if (_msgIn == null) return;
+            if (_msgIn.Text.Length > 0 && now >= _msgInUntil) _msgIn.Text = "";
+            if (_msgOut.Text.Length > 0 && now >= _msgOutUntil) _msgOut.Text = "";
+            PositionMsgs();
         }
 
-        /// <summary>Back to "waiting" (start, Reset Result, shift rollover).</summary>
-        private void ResetEventBoxes()
+        /// <summary>Writes one event to the daily Excel log (queued; never blocks the screen).</summary>
+        private void LogEvent(string eventName, int number, string detail)
         {
-            if (_boxIn == null) return;
-            _inKind = EventKind.None; _outKind = EventKind.None;
-            _inFlashOn = false; _outFlashOn = false;
-            _inFlashUntil = DateTime.MinValue; _outFlashUntil = DateTime.MinValue;
-            _inTitle.Text = "IN  -  last count";
-            _inValue.Text = "waiting for first IN";
-            _outTitle.Text = "OUT  -  last scan";
-            _outValue.Text = "waiting for first scan";
-            ApplyEventStyle(true);
-            ApplyEventStyle(false);
+            try
+            {
+                if (_dailyLog == null) return;
+                _dailyLog.Add(new DailyEvent
+                {
+                    Time = DateTime.Now,
+                    Line = _config != null ? _config.ActiveLine : "",
+                    Shift = _currentShiftMode ?? ShiftCalculator.GetShift(DateTime.Now),
+                    Event = eventName,
+                    Number = number,
+                    Detail = detail
+                });
+            }
+            catch { }
         }
 
         /// <summary>Re-centers the Line label and re-right-aligns the Shift
@@ -390,14 +355,6 @@ namespace Teeth
             _lblShift.Location = new Point(_topPanel.Width - _lblShift.Width - 20, 10);
             _lblLink.Location = new Point((_topPanel.Width - _lblLink.Width) / 2, 66);
 
-            // IN / OUT boxes sit side by side in the free space between the
-            // Time/Date/Elapsed column (left) and the buttons (right).
-            int avail = _topPanel.Width - 330 - 240;
-            int bw = Math.Max(200, Math.Min(380, (avail - 10) / 2));
-            int x0 = 330 + Math.Max(0, (avail - (bw * 2 + 10)) / 2);
-            _boxIn.SetBounds(x0, 92, bw, 54);
-            _boxOut.SetBounds(x0 + bw + 10, 92, bw, 54);
-            _inTitle.Width = _inValue.Width = _outTitle.Width = _outValue.Width = bw - 12;
             // Reset Result on top, Change Schedule directly underneath it,
             // both right-aligned under the Shift label (panel is 150px tall).
             _btnReset.Location = new Point(_topPanel.Width - _btnReset.Width - 20, 68);
@@ -563,7 +520,7 @@ namespace Teeth
             LoadTimelineForShift(_currentShiftMode);
 
             RefreshResultCells();
-            ResetEventBoxes();
+            ClearMsgs();
 
             _clockTimer = new System.Windows.Forms.Timer { Interval = 100 };
             _clockTimer.Tick += ClockTimer_Tick;
@@ -604,6 +561,7 @@ namespace Teeth
         {
             _clockTimer?.Stop();
             _autosaveTimer?.Stop();
+            try { _dailyLog?.Flush(); } catch { }
             if (_scanner != null) _scanner.Dispose();
             if (_link != null) _link.Dispose();
 
@@ -666,7 +624,7 @@ namespace Teeth
 
                 if (keyData == (Keys.Control | Keys.Alt | Keys.O))
                 {
-                    if (!isAutoRepeat) IncrementCountOut("manual (Ctrl+Alt+O)", EventKind.Ok);
+                    if (!isAutoRepeat) IncrementCountOut("manual (Ctrl+Alt+O)", true);
                     return true;
                 }
 
@@ -742,14 +700,18 @@ namespace Teeth
         {
             if (_settingsOpen) _deferredIn++;
             else { _liveCounts.CountIn++; RefreshResultCells(); }
-            ShowCountEvent(true, source, EventKind.Ok);
+            int nIn = _liveCounts.CountIn + _deferredIn;
+            LogEvent("IN", nIn, source);
+            ShowMsg(true, "IN +1   #" + nIn + "   " + DateTime.Now.ToString("HH:mm:ss"), "", ColMsgOk, 5);
         }
 
-        private void IncrementCountOut(string detail, EventKind kind)
+        private void IncrementCountOut(string detail, bool readable)
         {
             if (_settingsOpen) _deferredOut++;
             else { _liveCounts.CountOut++; RefreshResultCells(); }
-            ShowCountEvent(false, detail, kind);
+            int nOut = _liveCounts.CountOut + _deferredOut;
+            LogEvent(readable ? "OUT" : "OUT (code not readable)", nOut, detail);
+            ShowMsg(false, "OUT +1   #" + nOut, detail, readable ? ColMsgOk : ColMsgWarn, 5);
         }
 
         // ------------------------------------------------------------------
@@ -793,7 +755,7 @@ namespace Teeth
             switch (r.Verdict)
             {
                 case ScanVerdict.Accept:
-                    IncrementCountOut(r.Code, EventKind.Ok);
+                    IncrementCountOut(r.Code, true);
                     try { _scanGuard.Remember(r.Code, shiftKey, now); } catch { }
                     // Save right away so the count and its code cannot get out of step.
                     if (!_settingsOpen)
@@ -808,22 +770,21 @@ namespace Teeth
                     break;
 
                 case ScanVerdict.Unreadable:
-                    IncrementCountOut("code not readable", EventKind.Warn);
+                    IncrementCountOut("code not readable", false);
                     break;
 
                 case ScanVerdict.Duplicate:
                     ScanGuard.LogRejected(r, now);
                     System.Media.SystemSounds.Hand.Play();
-                    ShowEvent(false, "DUPLICATE   " + now.ToString("HH:mm:ss") +
-                        "   (first " + r.FirstScanAt.ToString("HH:mm:ss") + ")",
-                        "NOT counted: " + r.Code, EventKind.Bad, 15);
+                    LogEvent("REFUSED - DUPLICATE", 0, r.Code + " (first scanned " + r.FirstScanAt.ToString("HH:mm:ss") + ")");
+                    ShowMsg(false, "DUPLICATE", r.Code + "  (first " + r.FirstScanAt.ToString("HH:mm:ss") + ")", ColMsgBad, 10);
                     break;
 
                 default: // Unknown
                     ScanGuard.LogRejected(r, now);
                     System.Media.SystemSounds.Hand.Play();
-                    ShowEvent(false, "UNKNOWN CODE   " + now.ToString("HH:mm:ss"),
-                        "NOT counted: " + r.Code, EventKind.Bad, 15);
+                    LogEvent("REFUSED - UNKNOWN CODE", 0, r.Code);
+                    ShowMsg(false, "UNKNOWN CODE", r.Code, ColMsgBad, 10);
                     break;
             }
         }
@@ -888,7 +849,7 @@ namespace Teeth
             _lastSavedFrozen = 0.0;
 
             RefreshResultCells();
-            ResetEventBoxes();
+            ClearMsgs();
         }
 
         // ------------------------------------------------------------------
@@ -917,7 +878,7 @@ namespace Teeth
             _currentShiftKey = shiftKey;
             _lblShift.Text = $"Shift: {shiftMode}";
             UpdateLinkStatus();
-            UpdateEventFlash(now);
+            UpdateMsgs(now);
             PositionTopLabels();
 
             DateTime shiftStart = ShiftCalculator.GetShiftStart(now);
@@ -955,7 +916,7 @@ namespace Teeth
 
             LoadTimelineForShift(newShiftMode);
             RefreshResultCells();
-            ResetEventBoxes();
+            ClearMsgs();
 
             System.Diagnostics.Debug.WriteLine($"Shift boundary crossed. Rolled over to {newShiftMode} Shift. Registers wiped.");
         }
@@ -1090,6 +1051,9 @@ namespace Teeth
 
         private void AutosaveTimer_Tick(object sender, EventArgs e)
         {
+            // Daily Excel event log: write queued IN/OUT rows (background thread).
+            try { _dailyLog?.FlushAsync(); } catch { }
+
             bool changed =
                 _liveCounts.CountIn != _lastSavedIn ||
                 _liveCounts.CountOut != _lastSavedOut ||

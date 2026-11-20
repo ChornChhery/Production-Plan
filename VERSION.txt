@@ -1,4 +1,10 @@
-TEETH package version  (latest: Package 7 / v8, 2026-11-20)
+TEETH package version  (latest: Package 8 / v9, 2026-11-20)
+
+Package 8 (v9) - 2026-11-20  (Teeth.exe CHANGED: IN/OUT boxes and the yellow Result cell removed; one-line message over the IN / OUT column; daily Excel log; all PDFs and documents updated)
+  Install: close Teeth.exe on laptop 2, copy the new Teeth.exe over the old one in C:\Teeth (database and Log Data kept). Laptop 1 needs nothing. Old exe: App Files\Backup\Teeth_before_v9_boxes_removed.exe.
+  Screen: Result cells never change colour. A thin one-line message appears over the IN column (key button on laptop 1) and over the OUT column (scanned serial, or DUPLICATE / UNKNOWN CODE in red + beep) only when it happens, then disappears (5 s, 10 s for refused).
+  Log: Log Data\Teeth_Daily_yyyy-MM-dd.xlsx, one file per day: sheet Events (every IN / OUT / refused scan with time, shift, number, serial) and sheet Summary. Teeth_Log.xlsx (per shift) unchanged.
+  Documents: README, SETUP-TWO-LAPTOPS, plan, AI_CONTEXT, CHANGES-v9.txt; the dashboard picture (Figure 14 / page 15) redrawn; the 4 PDFs + Full Reference Guide: notes corrected, old UPDATE 2026-11-20 (b) page replaced by UPDATE 2026-11-20 (c).
 
 Package 7 (v8) - 2026-11-20  (Teeth.exe CHANGED: Change Schedule close resets the whole row; IN box and OUT box on the Teeth screen; all PDFs and documents updated)
   Change Schedule: blank at Start hour or End hour closes the whole work (End, Target IN/OUT = 0, Tact -, row grey, Plan drops). Before, only the minute was cleared.

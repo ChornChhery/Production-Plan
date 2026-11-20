@@ -1,0 +1,22 @@
+TEETH - v9 (2026-11-20)
+
+INSTALL: close Teeth.exe on LAPTOP 2, copy this Teeth.exe over the old one in C:\Teeth (database and Log Data are kept), start it. Laptop 1 needs nothing.
+Old exe: App Files\Backup\Teeth_before_v9_boxes_removed.exe
+
+1. Result IN / Result OUT no longer change colour (no yellow flash). The cells stay the normal blue background when the number counts up.
+2. The big IN box and OUT box under "Laptop 1: Connected" are removed. The "Laptop 1: Connected" line stays.
+   NEW one-line message strip (30 px, small text) between the top bar and the table, over the IN column and the OUT column. Text only, no colour on the cells. Empty at all times except right after an event:
+     IN  column: "IN +1   #652   17:42:10"  - only when the key button on laptop 1 is pressed (5 s)
+     OUT column: "OUT +1   #340   <serial>"  - only when a scan is counted (5 s); orange "code not readable" if no code
+                 "DUPLICATE   <serial>  (first 17:30:00)" in red + beep (10 s); "UNKNOWN CODE   <serial>" the same
+   Also cleared on Reset Result and at a shift change; empty when Teeth starts.
+3. NEW daily Excel log: every IN, every OUT and every refused scan is written to
+   Log Data\Teeth_Daily_yyyy-MM-dd.xlsx   (one file per day, a new file at 00:00)
+   Sheet "Events": Time | Date | Line | Shift | Event | Number | Detail
+     Event = IN, OUT, OUT (code not readable), REFUSED - DUPLICATE, REFUSED - UNKNOWN CODE
+     Number = the Result IN / OUT number after that event (empty for refused scans)
+     Detail = IN: where it came from; OUT: scanned serial; refused: the code
+   Sheet "Summary": Day / Night / Total counts, calculated by formulas.
+   Rows are saved every ~3 seconds in the background and when Teeth closes. If the day's file is open in Excel, the rows wait and are written when it is closed (nothing is lost, close Excel to see the newest rows).
+   The old Teeth_Log.xlsx (one row per shift) is unchanged.
+Code: DailyEventLog.cs (new), MainDashboard.cs (LogEvent, IncrementCountIn/Out). Compiled with mono against .NET 4.8 reference assemblies, no errors. The Excel writing was tested here (append, 2 flushes, Day + Night rows). NOT yet tested on a real Windows screen.

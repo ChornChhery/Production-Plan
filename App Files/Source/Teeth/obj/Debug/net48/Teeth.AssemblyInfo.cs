@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Teeth")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+714e28769f193373aaf7cad33b2cfe12428b6661")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+fcc625f6e6636f45bc76ac0a946ec8e1946349da")]
 [assembly: System.Reflection.AssemblyProductAttribute("Teeth")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Teeth")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

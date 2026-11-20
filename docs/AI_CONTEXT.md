@@ -200,6 +200,9 @@ Tests: `App Files\Source_Build\scan-tests\Test-ScanGuard.cs` + `run-tests.sh` (M
 
 
 ## UPDATE 2026-11-20 (b) - Package 7: close resets the row; IN/OUT boxes
+
+> **SUPERSEDED by UPDATE 2026-11-20 (c) (v9) below:** the IN box / OUT box and the yellow Result cell no longer exist; see (c).
+
 - Choosing the blank line in the Start hour OR the End hour of a work now closes the WHOLE work at once: Start and End (hour and minute) blank, Target IN and Target OUT = 0, Tact "-", row grey, Plan IN / Plan OUT drop. (Before, only the minute of that cell was cleared and End, targets and Tact stayed on screen.) The button "Close selected work" uses the same code (CloseRow in ScheduleSettingsForm.cs).
 - Rules unchanged: both Start and End, or neither; a gap between open works is a break; overlap is the only timing error; closed rows are saved with empty times and 0 targets and go after the open works.
 - The top bar of the Teeth screen (laptop 2) now has an IN box and an OUT box (items 10 and 11 in the picture). Each keeps the LAST event: "IN +1  #652  06:50:09" and the source (IN: "from Laptop 1 (cable)" or "manual (Ctrl+Alt+I)"; OUT: the scanned serial, "code not readable" or "manual (Ctrl+Alt+O)").
@@ -209,3 +212,30 @@ Tests: `App Files\Source_Build\scan-tests\Test-ScanGuard.cs` + `run-tests.sh` (M
 - Tests to give the owner: S1 blank at Start hour of an open work: End, targets, Tact reset, row grey, Plan drops. S2 same with End hour. S3 Close selected work: same. S4 pick Start hour on a closed row: minute 00, then End hour + targets: Tact shows. S5 close a work, Save, reopen: closed work at the bottom, 0 targets, no error. E1 key button on laptop 1: IN box flashes green with number and time, Result IN cell yellow. E2 scan a new item: OUT box green with the serial, Result OUT +1. E3 scan it again: OUT box red DUPLICATE + beep, no count. E4 Ctrl+Alt+I / Ctrl+Alt+O: boxes say manual. E5 Reset Result: both boxes say waiting; narrow/wide the window: boxes do not overlap clock or buttons.
 - Checked here: compiled with mono against the real .NET Framework 4.8 reference assemblies, no errors. NOT yet tested on a real Windows screen (layout, colours, dropdowns) - do S1-S5 and E1-E5 once.
 - Old exe: `App Files\\Backup\\Teeth_before_close_reset_fix.exe` (before both changes). Documents of this package: the 4 PDFs and the Full Reference Guide got the dashboard picture redrawn (items 10/11), a stamp note on that page and on the 2026-11-19 page, and two new last pages UPDATE 2026-11-20 (a) and (b).
+
+## UPDATE 2026-11-20 (c) - v9: one-line message instead of the boxes + daily Excel log
+
+```
+Install (laptop 2 only): close Teeth.exe, copy the new Teeth.exe over the old one in C:\Teeth (database and Log Data are kept), start it. Laptop 1 and TeethSender.exe need nothing. Old exe: App Files\Backup\Teeth_before_v9_boxes_removed.exe.
+1. The Result IN / Result OUT cells never change colour any more (no yellow). The big IN box and OUT box are gone. "Laptop 1: Connected" stays.
+2. A thin one-line message (30 px, small text) sits between the top bar and the table, exactly over the IN column (item 10) and over the OUT column (item 11). It is EMPTY all the time, and only shows when something happens:
+     IN column : key button pressed on laptop 1  ->  "IN +1   #652   17:42:10"  (5 s)
+     OUT column: new code scanned                ->  "OUT +1   #340   SN-123456" (the serial)  (5 s); "code not readable" in orange when no code was read
+                 same code again                  ->  "DUPLICATE   SN-123456  (first 17:30:00)" in red + beep (10 s), NOT counted
+                 code not on the valid list       ->  "UNKNOWN CODE   <code>" in red + beep (10 s), NOT counted
+   The message also disappears on Reset Result and at a shift change, and is empty when Teeth starts.
+3. DAILY EXCEL LOG: every IN, every OUT and every refused scan is written to  Log Data\Teeth_Daily_yyyy-MM-dd.xlsx  (one file per day, a new file at 00:00).
+     Sheet "Events": Time | Date | Line | Shift | Event | Number | Detail
+       Event = IN, OUT, OUT (code not readable), REFUSED - DUPLICATE, REFUSED - UNKNOWN CODE
+       Number = the Result IN / OUT number after that event (empty for a refused scan)
+       Detail = IN: where it came from; OUT: the scanned serial; refused: the code (duplicate: and when it was first scanned)
+     Sheet "Summary": IN / OUT / not readable / refused per Day shift, Night shift and Total (formulas).
+   To find out if a barcode was scanned: open that day's file, press Ctrl+F, type the code. A night shift that passes midnight is split over two daily files by the clock date.
+   Rows are saved in the background every ~3 s and when Teeth closes. If the day's file is open in Excel the rows wait and are written when it is closed (nothing is lost).
+   Teeth_Log.xlsx (one row per shift: Plan / Target / Result) is unchanged.
+4. Tests E1-E5 (laptop 2): E1 press the key button on laptop 1: one line "IN +1 #n time" over the IN column for 5 s, Result IN +1, NO yellow. E2 scan a new item: "OUT +1 #n serial" over the OUT column, Result OUT +1. E3 scan it again: red "DUPLICATE serial (first time)" + beep, no count. E4 Ctrl+Alt+I / Ctrl+Alt+O: lines say "manual (Ctrl+Alt+I)" / "manual (Ctrl+Alt+O)". E5 Reset Result: both lines empty. E6 open Log Data\Teeth_Daily_<today>.xlsx: every action of E1-E3 is a row in Events (close Excel afterwards).
+Limits: the IN line shows no code because the key button on laptop 1 sends none. Compiled with mono against the real .NET Framework 4.8 reference assemblies, no errors; the Excel writing was tested on the build machine; NOT yet tested on a real Windows screen: do E1-E6 once.
+Code: MainDashboard.cs (ShowMsg, UpdateMsgs, PositionMsgs, ClearMsgs, LogEvent) and the new DailyEventLog.cs.
+```
+
+- For the next AI: the old helper methods BuildEventBox / ShowEvent / ShowCountEvent / ApplyEventStyle / UpdateEventFlash / ResetEventBoxes and the colour ColCellFlash NO LONGER EXIST. IncrementCountOut(detail, bool readable). The build machine needs `apt install mono-mcs mono-devel` (reference assemblies /usr/lib/mono/4.8-api); build script App Files/Source_Build/build-with-mono.sh.
